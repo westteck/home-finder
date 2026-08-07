@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Routes, Route, Link, useSearchParams, useParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import SettingsPage from './Settings.jsx'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 
@@ -24,6 +25,7 @@ function Layout({ children }) {
         <nav>
           <Link to='/' style={{color:'#8b949e'}}>Browse</Link>
           <Link to='/map' style={{color:'#8b949e'}}>Map</Link>
+          <Link to='/settings' style={{color:'#8b949e'}}>Settings</Link>
         </nav>
       </header>
       <main style={{padding:'1rem 1.5rem'}}>{children}</main>
@@ -77,12 +79,14 @@ function Filters({ defaults, onSearch }) {
 }
 
 /* ── Card ── */
-function Card({ row }) {
+function Card({ row, favIds, onToggleFav }) {
   const photo = row.photo_url || null
-  const lat = parseFloat(row.latitude)
-  const lng = parseFloat(row.longitude)
+  const isFav = favIds.has(row.id)
   return (
-    <div className='card'>
+    <div className='card' style={{ position: 'relative' }}>
+      <button onClick={() => onToggleFav(row.id)} style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, background: 'rgba(13,17,23,.9)', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', fontSize: '1.1rem', color: isFav ? '#f85149' : '#8b949e' }}>
+        {isFav ? '♥' : '♡'}
+      </button>
       <a href={row.url} target='_blank' rel='noreferrer'>
         {photo ? (
           <div style={{height:200,backgroundSize:'cover',backgroundPosition:'center',backgroundImage:`url(${photo})`,position:'relative'}}>
@@ -127,6 +131,15 @@ function Browse() {
   useEffect(() => { setData(null); fetchJSON(`/api/listings.php?${query}`).then(d => setData(d)) }, [query])
   useEffect(() => { setSp(new URLSearchParams(filters), {replace:true}) }, [filters])
 
+  // Favorites
+  const [favIds, setFavIds] = useState(new Set())
+  useEffect(() => { fetchJSON('/api/favorites.php').then(d => setFavIds(new Set((d.favorites || []).map(f => f.listing_id)))) }, [])
+  const toggleFav = async id => {
+    const isFav = favIds.has(id)
+    await fetchJSON(`/api/favorites.php?listing_id=${id}`, { method: isFav ? 'DELETE' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ listing_id: id }) })
+    setFavIds(prev => { const n = new Set(prev); if (isFav) n.delete(id); else n.add(id); return n; })
+  }
+
   const exportCSV = () => {
     if (!data || !data.listings) return
     const b = new Blob([csv(data.listings, [
@@ -154,7 +167,7 @@ function Browse() {
       {!data ? <p style={{opacity:.5}}>Loading...</p> : (
         <>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'1rem'}}>
-            {data.listings.map(row => <Card key={row.id} row={row} />)}
+            {data.listings.map(row => <Card key={row.id} row={row} favIds={favIds} onToggleFav={toggleFav} />)}
           </div>
           {data.pages > 1 && (
             <div style={{marginTop:'1.5rem',display:'flex',gap:'.4rem',flexWrap:'wrap'}}>
@@ -254,6 +267,7 @@ export default function App() {
         <Route path='/' element={<Browse/>} />
         <Route path='/map' element={<MapPage/>} />
         <Route path='/listing/:id' element={<ListingDetail/>} />
+        <Route path='/settings' element={<SettingsPage/>} />
       </Routes>
     </Layout>
   )

@@ -27,6 +27,12 @@ function dbQueryAll(string $sql, array $bindings = []): array {
     return $stmt->fetchAll();
 }
 
+function dbExec(string $sql, array $bindings = []): int {
+    $stmt = db()->prepare($sql);
+    $stmt->execute($bindings);
+    return $stmt->rowCount();
+}
+
 function htp(array $params = []): string {
     $q = [];
     foreach ($params as $k => $v) {
