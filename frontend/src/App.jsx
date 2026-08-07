@@ -32,31 +32,37 @@ function Layout({ children }) {
 }
 
 /* ── Filters component ── */
-function Filters({ state, set }) {
+function Filters({ defaults, onSearch }) {
+  const [state, setState] = useState(defaults)
   const [opts, setOpts] = useState({ cities: [], states: [] })
   useEffect(() => { fetchJSON('/api/filters.php').then(d => setOpts(d)) }, [])
+  useEffect(() => { setState(defaults) }, [defaults])   // sync when URL changes
+
+  const submit = e => { e.preventDefault(); onSearch(state) }
+  const clear = () => { setState({}); onSearch({}) }
+
   return (
-    <form style={{display:'flex',flexWrap:'wrap',gap:'.6rem 1rem',marginBottom:'1.2rem',padding:'.9rem',background:'#161b22',border:'1px solid #30363d',borderRadius:'8px',alignItems:'flex-end'}} onSubmit={e => e.preventDefault()}>
-      <label>Min $<input type='number' value={state.min_price || ''} onChange={e=>set({...state, min_price:e.target.value})} /></label>
-      <label>Max $<input type='number' value={state.max_price || ''} onChange={e=>set({...state, max_price:e.target.value})} /></label>
-      <label>Beds ≥<input type='number' step='0.5' value={state.min_beds || ''} onChange={e=>set({...state, min_beds:e.target.value})} /></label>
-      <label>Baths ≥<input type='number' step='0.5' value={state.min_baths || ''} onChange={e=>set({...state, min_baths:e.target.value})} /></label>
-      <label>Lot(ac) ≥<input type='number' step='0.5' value={state.min_lot || ''} onChange={e=>set({...state, min_lot:e.target.value})} /></label>
+    <form style={{display:'flex',flexWrap:'wrap',gap:'.6rem 1rem',marginBottom:'1.2rem',padding:'.9rem',background:'#161b22',border:'1px solid #30363d',borderRadius:'8px',alignItems:'flex-end'}} onSubmit={submit}>
+      <label>Min $<input type='number' value={state.min_price || ''} onChange={e=>setState({...state, min_price:e.target.value})} /></label>
+      <label>Max $<input type='number' value={state.max_price || ''} onChange={e=>setState({...state, max_price:e.target.value})} /></label>
+      <label>Beds ≥<input type='number' step='0.5' value={state.min_beds || ''} onChange={e=>setState({...state, min_beds:e.target.value})} /></label>
+      <label>Baths ≥<input type='number' step='0.5' value={state.min_baths || ''} onChange={e=>setState({...state, min_baths:e.target.value})} /></label>
+      <label>Lot(ac) ≥<input type='number' step='0.5' value={state.min_lot || ''} onChange={e=>setState({...state, min_lot:e.target.value})} /></label>
       <label>State
-        <select value={state.state||''} onChange={e=>set({...state, state:e.target.value})}>
+        <select value={state.state||''} onChange={e=>setState({...state, state:e.target.value})}>
           <option value=''>Any</option>
           {opts.states.map(s=> <option key={s} value={s}>{s}</option>)}
         </select>
       </label>
       <label>City
-        <select value={state.city||''} onChange={e=>set({...state, city:e.target.value})}>
+        <select value={state.city||''} onChange={e=>setState({...state, city:e.target.value})}>
           <option value=''>Any</option>
           {opts.cities.map(c=> <option key={c} value={c}>{c}</option>)}
         </select>
       </label>
-      <label>Search<input type='text' value={state.q||''} placeholder='address, zip...' onChange={e=>set({...state, q:e.target.value})} /></label>
+      <label>Search<input type='text' value={state.q||''} placeholder='address, zip...' onChange={e=>setState({...state, q:e.target.value})} /></label>
       <label>Sort
-        <select value={state.sort||'price_asc'} onChange={e=>set({...state, sort:e.target.value})}>
+        <select value={state.sort||'price_asc'} onChange={e=>setState({...state, sort:e.target.value})}>
           <option value='price_asc'>Price ▲</option>
           <option value='price_desc'>Price ▼</option>
           <option value='beds_desc'>Beds ▼</option>
@@ -64,7 +70,8 @@ function Filters({ state, set }) {
           <option value='newest'>Newest</option>
         </select>
       </label>
-      <button onClick={()=>set({})}>Clear</button>
+      <button type='submit' style={{background:'#238636',color:'#fff',fontWeight:600,padding:'.5rem 1.2rem',borderRadius:6,border:'1px solid #238636',cursor:'pointer'}}>Search</button>
+      <button type='button' onClick={clear} style={{background:'transparent',color:'#8b949e',border:'1px solid #30363d',padding:'.5rem .8rem',borderRadius:6,cursor:'pointer'}}>Clear</button>
     </form>
   )
 }
@@ -142,7 +149,7 @@ function Browse() {
         <span style={{background:'#161b22',padding:'.4rem .8rem',borderRadius:6,border:'1px solid #30363d'}}>Max: <strong>${(+stats?.max_price || 0).toLocaleString()}</strong></span>
         {data && <span style={{background:'#161b22',padding:'.4rem .8rem',borderRadius:6,border:'1px solid #30363d'}}>Results: <strong>{data.total.toLocaleString()}</strong></span>}
       </div>
-      <Filters state={filters} set={setFilters} />
+      <Filters defaults={filters} onSearch={setFilters} />
       <button onClick={exportCSV} style={{marginBottom:'1rem'}}>Export CSV</button>
       {!data ? <p style={{opacity:.5}}>Loading...</p> : (
         <>
