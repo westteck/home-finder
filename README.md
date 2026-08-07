@@ -12,7 +12,8 @@ Multi-source real estate listing aggregator. React SPA frontend, PHP JSON API, P
 
 | Layer | Tech |
 |-------|------|
-| Scraper | Python 3 stdlib `urllib` + Playwright (Redfin GIS API) |
+| Scraper | Python 3 stdlib `urllib` + Playwright (headless Chromium) |
+| LLM | None — no AI/LLM called at runtime |
 | Scheduler | Cron inside Docker container |
 | Database | SQLite (`listings`, `listing_history`, `scraper_log`, `search_criteria`) |
 | API | PHP 8.2 (vanilla PDO) |
@@ -34,7 +35,8 @@ All return `application/json`.
 
 ## Source: Redfin
 
-Uses the internal GIS API:
+Uses the internal GIS API. See `SOURCES.md` for full list of attempted sources and blocked sites.
+
 ```
 https://www.redfin.com/stingray/api/gis?al=1&region_id={ID}&region_type=6&pagesize=50&page={N}&v=1
 ```
