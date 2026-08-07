@@ -1,0 +1,16 @@
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,sans-serif;margin:0;background:#0d1117;color:#c9d1d9;line-height:1.4}
+a{color:#58a6ff;text-decoration:none}
+a:hover{color:#fff}
+h1,h2,h3{margin:0}
+button{background:#238636;color:#fff;border:0;border-radius:4px;padding:.4rem .9rem;cursor:pointer;font-size:.85rem}
+button:hover{background:#2ea043}
+input,select{background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:4px;padding:.35rem .5rem;font-size:.9rem}
+.card{background:#161b22;border:1px solid #30363d;border-radius:8px;overflow:hidden}
+.card:hover{border-color:#58a6ff}
+.no-results{text-align:center;padding:3rem;opacity:.5}
+.wrap{max-width:1200px;margin:0 auto;padding:1rem 1.5rem 2rem}
+.header{background:#161b22;border-bottom:1px solid #30363d;padding:1rem 1.5rem;position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:1.2rem;color:#58a6ff}
+.header nav a{margin-left:1rem;font-size:.9rem;color:#8b949e}
+.header nav a:hover{color:#c9d1d9}

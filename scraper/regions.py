@@ -1,0 +1,47 @@
+# Multi-region Redfin config for Home Finder
+# Format: region_id: city_name, state
+# Region IDs discovered via Redfin's internal API
+
+REGIONS = {
+    # Oregon
+    31319:  ("The Dalles", "OR"),
+    31138:  ("Portland", "OR"),
+    30768:  ("Bend", "OR"),
+    31365:  ("Hood River", "OR"),
+    30473:  ("Eugene", "OR"),
+    30642:  ("Medford", "OR"),
+    30756:  ("Salem", "OR"),
+    31541:  ("Corvallis", "OR"),
+    30801:  ("Grants Pass", "OR"),
+    31131:  ("Roseburg", "OR"),
+    31743:  ("Astoria", "OR"),
+    31332:  ("Tillamook", "OR"),
+    31638:  ("Newport", "OR"),
+    30690:  ("Pendleton", "OR"),
+    30698:  ("Ontario", "OR"),
+    30747:  ("Klamath Falls", "OR"),
+    30724:  ("La Grande", "OR"),
+    30669:  ("Coos Bay", "OR"),
+    # Washington
+    16037:  ("Seattle", "WA"),
+    16065:  ("Bellevue", "WA"),
+    175:    ("Spokane", "WA"),
+    176:    ("Tacoma", "WA"),
+    179:    ("Yakima", "WA"),
+    178:    ("Vancouver", "WA"),
+    171:    ("Bellingham", "WA"),
+    177:    ("Olympia", "WA"),
+    166:    ("Everett", "WA"),
+    16461:  ("Richland", "WA"),
+    16876:  ("Kennewick", "WA"),
+    16126:  ("Wenatchee", "WA"),
+    16254:  ("Walla Walla", "WA"),
+    16131:  ("Pullman", "WA"),
+    17013:  ("Mount Vernon", "WA"),
+    16352:  ("Anacortes", "WA"),
+    16256:  ("Port Angeles", "WA"),
+    16133:  ("Longview", "WA"),
+    16198:  ("Centralia", "WA"),
+    16457:  ("Aberdeen", "WA"),
+    15978:  ("Ellensburg", "WA"),
+}

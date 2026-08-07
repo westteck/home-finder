@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  home-finder:
+    build: .
+    container_name: home-finder
+    restart: unless-stopped
+    volumes:
+      - /local/docker/home-finder/data:/app/data
+      - /local/docker/home-finder/logs:/var/log
+    environment:
+      - TZ=America/Los_Angeles
+    ports:
+      - "3013:80"
+    networks:
+      - home-finder-net
+    labels:
+      - "traefik.enable=false"
+
+networks:
+  home-finder-net:
+    driver: bridge

@@ -1,0 +1,21 @@
+# API requests pass through to PHP
+RewriteEngine On
+
+# Do not rewrite if request is for an actual file or directory
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# API routes — let them fall through to PHP files
+RewriteRule ^api/ - [L]
+
+# SPA — everything else goes to index.html
+RewriteRule ^ index.html [L]
+
+# Ensure CORS for API
+<IfModule mod_headers.c>
+  <FilesMatch "^api/">
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, OPTIONS"
+  </FilesMatch>
+</IfModule>

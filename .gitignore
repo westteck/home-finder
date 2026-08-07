@@ -1,0 +1,19 @@
+# React / build artifacts
+frontend/node_modules/
+frontend/dist/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+
+# Do not commit the database
+*.db
+*.sqlite
+
+# Logs & data
+*.log
+data/
+logs/
