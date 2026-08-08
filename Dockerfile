@@ -12,14 +12,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Python deps in a venv (avoids Debian PEP 668 / RECORD issues)
+# Python deps in a venv (avoids Debian PEP 668 issues)
 RUN python3 -m venv /opt/venv \
-    && /opt/venv/bin/pip install --no-cache-dir typing_extensions playwright playwright-stealth mcp \
+    && /opt/venv/bin/pip install --no-cache-dir playwright \
     && /opt/venv/bin/playwright install chromium
-
-# Symlink venv executables into PATH for cron + entrypoint
-RUN ln -sf /opt/venv/bin/python3 /usr/local/bin/python3-hf \
-    && ln -sf /opt/venv/bin/pip3 /usr/local/bin/pip3-hf
 
 ENV PATH="/opt/venv/bin:$PATH"
 
@@ -43,4 +39,4 @@ RUN printf "SHELL=/bin/sh\nPATH=/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/us
 ENV TZ=America/Los_Angeles
 EXPOSE 80
 
-ENTRYPOINT ["sh", "-c", "mkdir -p /app/data /var/log /var/log/apache2 && python3 /app/scraper/main.py >> /app/data/scraper.log 2>&1 && cron && apachectl -D FOREGROUND"]
+ENTRYPOINT ["sh", "-c", "mkdir -p /app/data /var/log /var/log/apache2 && (python3 /app/scraper/main.py >> /app/data/scraper.log 2>&1 &) && cron && apachectl -D FOREGROUND"]
