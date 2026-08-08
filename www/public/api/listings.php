@@ -14,6 +14,10 @@ $status    = param('status', 'Active');
 $city      = param('city', '');
 $state     = param('state', '');
 $q         = param('q', '');
+$latMin    = (float) param('lat_min', 0);
+$latMax    = (float) param('lat_max', 0);
+$lngMin    = (float) param('lng_min', 0);
+$lngMax    = (float) param('lng_max', 0);
 $page      = max(1, (int) param('page', 1));
 $perPage   = (int) param('per_page', 50) ?: 50;
 
@@ -39,9 +43,17 @@ if ($city)          { $where[] = 'city = ?';       $bindings[] = $city; }
 if ($state)         { $where[] = 'state = ?';      $bindings[] = $state; }
 if ($q)             { $where[] = '(address LIKE ? OR city LIKE ? OR zip LIKE ?)'; $bindings[] = "%$q%"; $bindings[] = "%$q%"; $bindings[] = "%$q%"; }
 
+if ($latMin != 0 && $latMax != 0 && $lngMin != 0 && $lngMax != 0) {
+    $where[] = 'latitude >= ? AND latitude <= ? AND longitude >= ? AND longitude <= ?';
+    $bindings[] = $latMin;
+    $bindings[] = $latMax;
+    $bindings[] = $lngMin;
+    $bindings[] = $lngMax;
+}
+
 $whereSQL = implode(' AND ', $where);
 
-$count = (int) (dbQueryOne("SELECT COUNT(*) FROM listings WHERE $whereSQL", $bindings)[0] ?? 0);
+$count = (int) (dbQueryOne("SELECT COUNT(*) FROM listings WHERE $whereSQL", $bindings)['COUNT(*)'] ?? 0);
 $offset = ($page - 1) * $perPage;
 $cards = dbQueryAll("SELECT * FROM listings WHERE $whereSQL ORDER BY $order LIMIT ? OFFSET ?", [...$bindings, $perPage, $offset]);
 

@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS listings (
     url         TEXT,
     photo_url   TEXT,
     listed_date TEXT,
+    latitude    REAL,
+    longitude   REAL,
     created_at  TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at  TEXT DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(source, source_id)
@@ -98,8 +100,8 @@ def upsert_listing(db: sqlite3.Connection, source_name: str, flat: dict) -> tupl
             """
             INSERT INTO listings
             (source, source_id, raw_json, mls_id, status, price, beds, baths,
-             sqft, lot_size_sqft, address, city, state, zip, county, url, photo_url, listed_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             sqft, lot_size_sqft, address, city, state, zip, county, url, photo_url, listed_date, latitude, longitude)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 source_name,
@@ -120,6 +122,8 @@ def upsert_listing(db: sqlite3.Connection, source_name: str, flat: dict) -> tupl
                 flat.get("url") or None,
                 flat.get("photo_url") or None,
                 flat.get("listed_date") or None,
+                flat.get("latitude") or None,
+                flat.get("longitude") or None,
             ),
         )
         return 1, 0

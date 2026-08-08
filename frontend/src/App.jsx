@@ -206,26 +206,99 @@ function Browse() {
 }
 
 /* ── Map route ── */
+import { useMapEvents } from 'react-leaflet'
+
+function MapBoundsFilter({ onBoundsChange }) {
+  useMapEvents({
+    moveend: e => onBoundsChange(e.target.getBounds()),
+  })
+  return null
+}
+
 function MapPage() {
   const [rows, setRows] = useState([])
+  const [filtered, setFiltered] = useState([])
+  const [searchBounds, setSearchBounds] = useState(null)
+  const [hasMoved, setHasMoved] = useState(false)
+
   useEffect(() => {
-    fetchJSON('/api/listings.php?per_page=9999').then(d => setRows(d.listings.filter(r => r.latitude && r.longitude)))
+    fetchJSON('/api/listings.php?per_page=9999').then(d => {
+      const withCoords = d.listings.filter(r => r.latitude && r.longitude)
+      setRows(withCoords)
+      setFiltered(withCoords)
+    })
   }, [])
+
+  const handleBoundsChange = bounds => {
+    setHasMoved(true)
+    setSearchBounds(bounds)
+  }
+
+  const applyBounds = () => {
+    if (!searchBounds) return
+    const sw = searchBounds.getSouthWest()
+    const ne = searchBounds.getNorthEast()
+    setFiltered(rows.filter(r => {
+      const lat = +r.latitude
+      const lng = +r.longitude
+      return lat >= sw.lat && lat <= ne.lat && lng >= sw.lng && lng <= ne.lng
+    }))
+    setHasMoved(false)
+  }
+
+  const clearBounds = () => {
+    if (!searchBounds) return
+    setFiltered(rows)
+    setHasMoved(false)
+    setSearchBounds(null)
+  }
+
   if (!rows.length) return <p style={{padding:'1rem',opacity:.5}}>Loading map...</p>
   const center = [+rows[0].latitude, +rows[0].longitude]
+  const boundsCount = searchBounds
+    ? rows.filter(r => {
+        const sw = searchBounds.getSouthWest()
+        const ne = searchBounds.getNorthEast()
+        const lat = +r.latitude
+        const lng = +r.longitude
+        return lat >= sw.lat && lat <= ne.lat && lng >= sw.lng && lng <= ne.lng
+      }).length
+    : 0
+
   return (
-    <div style={{height:'80vh',border:'1px solid #30363d',borderRadius:8,overflow:'hidden'}}>
-      <MapContainer center={center} zoom={6} style={{height:'100%',width:'100%'}}>
-        <TileLayer url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' />
-        {rows.map(r => (
-          <Marker key={r.id} position={[+r.latitude, +r.longitude]}>
-            <Popup>
-              <a href={r.url} target='_blank' rel='noreferrer'>{r.address}</a>
-              <br/>${(+r.price).toLocaleString()} — {r.beds} bd / {r.baths} ba
-            </Popup>
-          </Marker>
-        ))}
-      </MapContainer>
+    <div>
+      <div style={{display:'flex',gap:'.5rem',alignItems:'center',marginBottom:'.5rem',flexWrap:'wrap'}}>
+        {hasMoved ? (
+          <>
+            <button style={{padding:'.4rem .8rem',borderRadius:6,border:'1px solid #238636',background:'#238636',color:'#fff',cursor:'pointer'}}
+              onClick={applyBounds}>
+              🔍 Search this area ({boundsCount})
+            </button>
+            <button style={{padding:'.4rem .8rem',borderRadius:6,border:'1px solid #30363d',background:'#161b22',color:'#8b949e',cursor:'pointer'}}
+              onClick={clearBounds}>
+              Reset
+            </button>
+          </>
+        ) : null}
+        <span style={{color:'#8b949e',fontSize:'.85rem',marginLeft:'auto'}}>
+          Showing {filtered.length} listings
+        </span>
+      </div>
+
+      <div style={{height:'80vh',border:'1px solid #30363d',borderRadius:8,overflow:'hidden'}}>
+        <MapContainer center={center} zoom={6} style={{height:'100%',width:'100%'}}>
+          <TileLayer url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' />
+          <MapBoundsFilter onBoundsChange={handleBoundsChange} />
+          {filtered.map(r => (
+            <Marker key={r.id} position={[+r.latitude, +r.longitude]}>
+              <Popup>
+                <a href={r.url} target='_blank' rel='noreferrer'>{r.address}</a>
+                <br/>${(+r.price).toLocaleString()} — {r.beds} bd / {r.baths} ba
+              </Popup>
+            </Marker>
+          ))}
+        </MapContainer>
+      </div>
     </div>
   )
 }
