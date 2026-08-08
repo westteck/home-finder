@@ -33,10 +33,10 @@ COPY www/public/ /var/www/html/public/
 # Permissions
 RUN chown -R www-data:www-data /app /var/www/html
 
-# Cron: hourly scraper
-RUN printf "SHELL=/bin/sh\nPATH=/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n0 * * * * root cd /app/scraper && python3 /app/scraper/main.py >> /app/data/scraper.log 2>&1\n" > /etc/cron.d/home-finder && chmod 0644 /etc/cron.d/home-finder
+# Cron: hourly scraper + dedup
+RUN printf "SHELL=/bin/sh\nPATH=/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n0 * * * * root cd /app/scraper && PYTHONPATH=/app/scraper /opt/venv/bin/python3 /app/scraper/main.py >> /app/data/scraper.log 2>&1 && PYTHONPATH=/app/scraper /opt/venv/bin/python3 /app/scraper/dedup.py >> /app/data/scraper.log 2>&1\n" > /etc/cron.d/home-finder && chmod 0644 /etc/cron.d/home-finder
 
 ENV TZ=America/Los_Angeles
 EXPOSE 80
 
-ENTRYPOINT ["sh", "-c", "mkdir -p /app/data /var/log /var/log/apache2 && (python3 /app/scraper/main.py >> /app/data/scraper.log 2>&1 &) && cron && apachectl -D FOREGROUND"]
+ENTRYPOINT ["sh", "-c", "mkdir -p /app/data /var/log /var/log/apache2 && PYTHONPATH=/app/scraper /opt/venv/bin/python3 /app/scraper/main.py >> /app/data/scraper.log 2>&1 && PYTHONPATH=/app/scraper /opt/venv/bin/python3 /app/scraper/dedup.py >> /app/data/scraper.log 2>&1 && cron && apachectl -D FOREGROUND"]
