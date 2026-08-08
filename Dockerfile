@@ -12,10 +12,16 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Playwright + Chromium (container, skip PEP 668)
-RUN pip3 install --break-system-packages --no-cache-dir playwright && \
-    playwright install chromium && \
-    playwright install-deps chromium
+# Python deps in a venv (avoids Debian PEP 668 / RECORD issues)
+RUN python3 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir typing_extensions playwright playwright-stealth mcp \
+    && /opt/venv/bin/playwright install chromium
+
+# Symlink venv executables into PATH for cron + entrypoint
+RUN ln -sf /opt/venv/bin/python3 /usr/local/bin/python3-hf \
+    && ln -sf /opt/venv/bin/pip3 /usr/local/bin/pip3-hf
+
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Enable Apache rewrite + set document root
 RUN a2enmod rewrite \
@@ -32,7 +38,7 @@ COPY www/public/ /var/www/html/public/
 RUN chown -R www-data:www-data /app /var/www/html
 
 # Cron: hourly scraper
-RUN printf "SHELL=/bin/sh\n0 * * * * root cd /app/scraper && python3 /app/scraper/main.py >> /app/data/scraper.log 2>&1\n" > /etc/cron.d/home-finder && chmod 0644 /etc/cron.d/home-finder
+RUN printf "SHELL=/bin/sh\nPATH=/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n0 * * * * root cd /app/scraper && python3 /app/scraper/main.py >> /app/data/scraper.log 2>&1\n" > /etc/cron.d/home-finder && chmod 0644 /etc/cron.d/home-finder
 
 ENV TZ=America/Los_Angeles
 EXPOSE 80
