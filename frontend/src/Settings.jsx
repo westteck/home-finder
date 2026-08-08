@@ -9,11 +9,24 @@ export default function SettingsPage() {
   const [favs, setFavs] = useState([])
   const [newSearch, setNewSearch] = useState({ name: '', filters: {}, notify: false })
   const [msg, setMsg] = useState('')
+  const [keys, setKeys] = useState({ zillow: '', redfin: '', landwatch: '', realtor: '', loopnet: '' })
 
   useEffect(() => {
     fetchJSON('/api/saved_searches.php').then(d => setSaved(d.saved_searches || []))
     fetchJSON('/api/favorites.php').then(d => setFavs(d.favorites || []))
+    fetchJSON('/api/settings.php').then(d => {
+      const map = {}
+      ;(d || []).forEach(s => { map[s.key] = s.value })
+      setKeys({ ...keys, ...map })
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [msg])
+
+  const saveKey = async (site, val) => {
+    await fetchJSON('/api/settings.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: `${site}_api_key`, value: val }) })
+    setMsg(`${site} key saved`)
+    setTimeout(() => setMsg(''), 2000)
+  }
 
   const saveSearch = async e => {
     e.preventDefault()
@@ -37,11 +50,54 @@ export default function SettingsPage() {
     setTimeout(() => setMsg(''), 2000)
   }
 
+  const SOURCES = [
+    { name: 'Redfin', key: 'redfin', status: 'Active — GIS API ✅' },
+    { name: 'Zillow', key: 'zillow', status: 'Blocked — Cloudflare 🚫' },
+    { name: 'LandWatch', key: 'landwatch', status: 'Blocked — Cloudflare 🚫' },
+    { name: 'Realtor.com', key: 'realtor', status: 'Blocked — Cloudflare 🚫' },
+    { name: 'LoopNet', key: 'loopnet', status: 'Blocked — Cloudflare 🚫' },
+    { name: 'MLS/NWMLS/BrightMLS', key: 'mls', status: 'Gated — no public API 🚫' },
+  ]
+
   return (
     <div className='wrap'>
       <Link to='/' style={{ fontSize: '.85rem' }}>← Back to listings</Link>
       <h2 style={{ margin: '1rem 0', color: '#58a6ff' }}>Settings</h2>
       {msg && <div style={{ padding: '.6rem', background: '#238636', borderRadius: 6, marginBottom: '1rem', fontWeight: 600 }}>{msg}</div>}
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h3>Search Sources & API Keys</h3>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.85rem' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid #30363d', textAlign: 'left' }}>
+              <th style={{ padding: '.5rem' }}>Source</th>
+              <th style={{ padding: '.5rem' }}>Status</th>
+              <th style={{ padding: '.5rem' }}>API Key</th>
+            </tr>
+          </thead>
+          <tbody>
+            {SOURCES.map(s => (
+              <tr key={s.key} style={{ borderBottom: '1px solid #21262d' }}>
+                <td style={{ padding: '.5rem', fontWeight: 600 }}>{s.name}</td>
+                <td style={{ padding: '.5rem', color: s.status.includes('✅') ? '#3fb950' : '#8b949e' }}>{s.status}</td>
+                <td style={{ padding: '.5rem', display: 'flex', gap: '.5rem' }}>
+                  <input
+                    type='password'
+                    placeholder={`${s.name} API key`}
+                    value={keys[`${s.key}_api_key`] || ''}
+                    onChange={e => setKeys({ ...keys, [`${s.key}_api_key`]: e.target.value })}
+                    style={{ background: '#0d1117', border: '1px solid #30363d', borderRadius: 4, padding: '.3rem .5rem', color: '#e6edf3', fontSize: '.8rem', flex: 1 }}
+                  />
+                  <button
+                    onClick={() => saveKey(s.key, keys[`${s.key}_api_key`] || '')}
+                    style={{ background: '#238636', color: '#fff', border: 'none', borderRadius: 4, padding: '.3rem .6rem', cursor: 'pointer', fontSize: '.75rem' }}
+                  >Save</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
 
       <section style={{ marginBottom: '2rem' }}>
         <h3>Saved Searches</h3>

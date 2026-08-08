@@ -33,6 +33,34 @@ function Layout({ children }) {
   )
 }
 
+/* ── Saved Searches drop-down ── */
+function SavedSearches({ onApply }) {
+  const [saved, setSaved] = useState([])
+  const [open, setOpen] = useState(false)
+  useEffect(() => { fetchJSON('/api/saved_searches.php').then(d => setSaved(d.saved_searches || [])) }, [])
+  if (saved.length === 0) return null
+  return (
+    <div style={{marginBottom:'1rem'}}>
+      <button onClick={() => setOpen(!open)} style={{background:'#161b22',color:'#8b949e',border:'1px solid #30363d',padding:'.5rem 1rem',borderRadius:6,cursor:'pointer',fontSize:'.9rem'}}>
+        ▼ Saved Searches ({saved.length})
+      </button>
+      {open && (
+        <div style={{marginTop:'.5rem',background:'#161b22',border:'1px solid #30363d',borderRadius:8,padding:'.7rem',maxWidth:480}}>
+          {saved.map(s => (
+            <div key={s.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'.5rem 0',borderBottom:'1px solid #21262d'}}>
+              <div>
+                <strong style={{color:'#e6edf3'}}>{s.name}</strong>
+                <div style={{fontSize:'.75rem',opacity:.6}}>{s.filters}</div>
+              </div>
+              <button onClick={() => { onApply(JSON.parse(s.filters || '{}')); setOpen(false); }} style={{background:'#238636',color:'#fff',border:'none',borderRadius:6,padding:'.3rem .7rem',cursor:'pointer',fontSize:'.75rem'}}>Apply</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ── Filters component ── */
 function Filters({ defaults, onSearch }) {
   const [state, setState] = useState(defaults)
@@ -80,38 +108,28 @@ function Filters({ defaults, onSearch }) {
 
 /* ── Card ── */
 function Card({ row, favIds, onToggleFav }) {
-  const photo = row.photo_url || null
   const isFav = favIds.has(row.id)
   return (
-    <div className='card' style={{ position: 'relative' }}>
+    <div className='card' style={{ position: 'relative', padding: '1rem' }}>
       <button onClick={() => onToggleFav(row.id)} style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, background: 'rgba(13,17,23,.9)', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', fontSize: '1.1rem', color: isFav ? '#f85149' : '#8b949e' }}>
         {isFav ? '♥' : '♡'}
       </button>
-      <a href={row.url} target='_blank' rel='noreferrer'>
-        {photo ? (
-          <div style={{height:200,backgroundSize:'cover',backgroundPosition:'center',backgroundImage:`url(${photo})`,position:'relative'}}>
-            <span style={{position:'absolute',bottom:'.5rem',left:'.5rem',background:'rgba(13,17,23,.9)',padding:'.3rem .6rem',borderRadius:4,fontWeight:600,color:'#3fb950'}}>${(+row.price).toLocaleString()}</span>
-            <span style={{position:'absolute',top:'.5rem',right:'.5rem',background:'rgba(13,17,23,.9)',padding:'.15rem .5rem',borderRadius:4,fontSize:'.7rem',textTransform:'uppercase'}}>{row.status}</span>
-          </div>
-        ) : (
-          <div style={{height:200,display:'flex',alignItems:'center',justifyContent:'center',color:'#484f58',fontSize:'.9rem',position:'relative',background:'#21262d'}}>
-            No Photo
-            <span style={{position:'absolute',bottom:'.5rem',left:'.5rem',background:'rgba(13,17,23,.9)',padding:'.3rem .6rem',borderRadius:4,fontWeight:600,color:'#3fb950'}}>${(+row.price).toLocaleString()}</span>
-          </div>
-        )}
-      </a>
-      <div style={{padding:'.85rem'}}>
-        <div style={{fontWeight:600,color:'#e6edf3',fontSize:'.95rem'}}>{row.address}</div>
-        <div style={{fontSize:'.8rem',opacity:.65,marginBottom:'.5rem'}}>{row.city}, {row.state} {row.zip}</div>
-        <div style={{display:'flex',gap:'.4rem',flexWrap:'wrap',fontSize:'.78rem'}}>
-          {row.beds ? <span style={{background:'#21262d',padding:'.1rem .4rem',borderRadius:4}}>{row.beds} bd / {row.baths} ba</span> : null}
-          {row.sqft ? <span style={{background:'#21262d',padding:'.1rem .4rem',borderRadius:4}}>{(+row.sqft).toLocaleString()} sqft</span> : null}
-          {row.lot_size_sqft ? <span style={{background:'#21262d',padding:'.1rem .4rem',borderRadius:4}}>{(row.lot_size_sqft/43560).toFixed(1)} ac</span> : null}
-          <span style={{background:'#1f6feb',color:'#fff',padding:'.1rem .4rem',borderRadius:4}}>{row.source.split('-')[0]}</span>
-        </div>
-        <div style={{marginTop:'.5rem'}}>
-          <Link to={`/listing/${row.id}`} style={{fontSize:'.8rem'}}>View history & details →</Link>
-        </div>
+      <div style={{fontWeight:600,color:'#e6edf3',fontSize:'1.05rem',marginBottom:'.25rem'}}>
+        <a href={row.url} target='_blank' rel='noreferrer' style={{color:'#e6edf3'}}>{row.address}</a>
+      </div>
+      <div style={{fontSize:'.82rem',opacity:.65,marginBottom:'.6rem'}}>{row.city}, {row.state} {row.zip}</div>
+      <div style={{display:'flex',gap:'.5rem',flexWrap:'wrap',marginBottom:'.5rem'}}>
+        <span style={{fontWeight:700,color:'#3fb950',fontSize:'.95rem'}}>${(+row.price).toLocaleString()}</span>
+        {row.beds ? <span style={{background:'#21262d',padding:'.15rem .5rem',borderRadius:4,fontSize:'.75rem'}}>{row.beds} bd / {row.baths} ba</span> : null}
+        {row.sqft ? <span style={{background:'#21262d',padding:'.15rem .5rem',borderRadius:4,fontSize:'.75rem'}}>{(+row.sqft).toLocaleString()} sqft</span> : null}
+        {row.lot_size_sqft ? <span style={{background:'#21262d',padding:'.15rem .5rem',borderRadius:4,fontSize:'.75rem'}}>{(+row.lot_size_sqft/43560).toFixed(1)} ac</span> : null}
+      </div>
+      <div style={{display:'flex',gap:'.4rem',flexWrap:'wrap',fontSize:'.75rem'}}>
+        <span style={{background:'#1f6feb',color:'#fff',padding:'.1rem .4rem',borderRadius:4}}>{row.source.split('-')[0]}</span>
+        <span style={{background:'#21262d',padding:'.1rem .4rem',borderRadius:4,color:'#8b949e'}}>{row.status}</span>
+      </div>
+      <div style={{marginTop:'.6rem'}}>
+        <Link to={`/listing/${row.id}`} style={{fontSize:'.8rem'}}>View history & details →</Link>
       </div>
     </div>
   )
@@ -163,6 +181,7 @@ function Browse() {
         {data && <span style={{background:'#161b22',padding:'.4rem .8rem',borderRadius:6,border:'1px solid #30363d'}}>Results: <strong>{data.total.toLocaleString()}</strong></span>}
       </div>
       <Filters defaults={filters} onSearch={setFilters} />
+      <SavedSearches onApply={setFilters} />
       <button onClick={exportCSV} style={{marginBottom:'1rem'}}>Export CSV</button>
       {!data ? <p style={{opacity:.5}}>Loading...</p> : (
         <>
