@@ -245,14 +245,14 @@ function ListingDetail() {
       <h2 style={{margin:'1rem 0',color:'#58a6ff'}}>{row.address}</h2>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1.5rem'}}>
         <div>
-          {row.photo_url ? <img src={row.photo_url} alt='' style={{width:'100%',borderRadius:8,border:'1px solid #30363d'}} /> : <div style={{padding:'2rem',background:'#161b22',borderRadius:8,textAlign:'center',color:'#484f58'}}>No Photo</div>}
-          <div style={{marginTop:'1rem',fontSize:'.9rem'}}>
-            <p><strong>${(+row.price).toLocaleString()}</strong> — {row.status}</p>
-            <p>{row.city}, {row.state} {row.zip}</p>
-            {row.beds ? <p>{row.beds} bd / {row.baths} ba</p> : null}
-            {row.sqft ? <p>{(+row.sqft).toLocaleString()} sqft</p> : null}
-            {row.lot_size_sqft ? <p>{(row.lot_size_sqft/43560).toFixed(1)} acres</p> : null}
-            <p><a href={row.url} target='_blank' rel='noreferrer'>View on Redfin →</a></p>
+          <div style={{background:'#161b22',borderRadius:8,padding:'1.2rem',border:'1px solid #30363d'}}>
+            <div style={{fontWeight:700,color:'#3fb950',fontSize:'1.1rem',marginBottom:'.5rem'}}>${(+row.price).toLocaleString()}</div>
+            <div style={{opacity:.7,marginBottom:'.3rem'}}>{row.status}</div>
+            <div>{row.city}, {row.state} {row.zip}</div>
+            {row.beds ? <div>{row.beds} bd / {row.baths} ba</div> : null}
+            {row.sqft ? <div>{(+row.sqft).toLocaleString()} sqft</div> : null}
+            {row.lot_size_sqft ? <div>{(row.lot_size_sqft/43560).toFixed(1)} acres</div> : null}
+            <div style={{marginTop:'.7rem'}}><a href={row.url} target='_blank' rel='noreferrer'>View on Redfin →</a></div>
           </div>
         </div>
         <div>
