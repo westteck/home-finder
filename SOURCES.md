@@ -4,23 +4,32 @@
 
 | Site | Method | Status | Notes |
 |------|--------|--------|-------|
-| Redfin | GIS API (internal) | Working | 37 OR/WA regions; JSON with `lstrip("{}").lstrip("&&")` prefix strip |
+| Redfin | GIS API (internal) | Active | 37 OR/WA regions; JSON with `lstrip("{}").lstrip("&&")` prefix strip |
+| Realtor.com | HomeHarvest (Python library) | Active | 12 OR/WA cities via HomeHarvest `scrape_property()`; returns pandas DataFrame; filters OR/WA at parse time |
+
+## Deduplication
+
+After every scrape, `scraper/dedup.py` runs:
+- Groups listings by `address + city + state`
+- Marks **lowest price** as `is_canonical = 1`
+- Marks all others in the group `is_canonical = 0`
+- API returns canonical only by default (`all=1` to show duplicates)
+- Browse page has a **"Show duplicates"** checkbox
+
+**Current counts:**
+- Total listings: ~1,926
+- Canonical (unique addresses): ~1,431
+- Hidden duplicates: ~495
 
 ## Attempted / Blocked
 
-All return 403/429/Cloudflare with stdlib `urllib`. Playwright (headless Chromium) may bypass; not yet tested.
-
 | Site | Blocker | Notes |
 |------|---------|-------|
-| Zillow | Cloudflare + no public API | HTML is JS-rendered |
+| Zillow | Cloudflare + no public API | HTML is JS-rendered; Playwright not attempted |
 | LandWatch | 403 / bot challenge | Requires JS execution |
-| Realtor.com | 403 / Cloudflare | No public JSON endpoint found |
 | LoopNet | 403 | Commercial focus |
 | PropertyShark | 403 | Paywalled |
-| lands.com | Cloudflare | |
-| Craigslist | RSS blocked, HTML JS-rendered | Non-functional stub in repo |
-| landmoto.com | Dead — expired SSL + unreachable | |
-| mls.com / NWMLS / BrightMLS | Gated / login required | No public API |
+| MLS / NWMLS / BrightMLS | Gated / login required | No public API |
 
 ## Playwright Candidates
 
@@ -28,9 +37,7 @@ Sites to attempt with Playwright headless once prioritized:
 
 1. **Zillow** — `zillow.com/homes/` search results
 2. **LandWatch** — `landwatch.com` (land / rural focus, matches lot-size criteria)
-3. **Realtor.com** — `realtor.com/realestateandhomes-search/` results
-4. **LoopNet** — if commercial/multi-family desired
 
-## LLM Usage
+## LLM / AI Usage
 
 No LLM is used at runtime in the app. This project was built with assistance from Hermes Agent (local CLI agent); no external AI services are called during scraping, filtering, or serving.

@@ -2,40 +2,46 @@
 
 ## What This Is
 
-Personal real estate listing scraper and aggregator. Monitors configured sources for new/updated property listings, stores them in a local database, and surfaces matches via a React web UI. For personal house hunting only — no public access, no user accounts.
+Personal real estate listing scraper and aggregator for Oregon and Washington listings. Monitors multiple sources, stores them in a local SQLite database, and surfaces matches via a React web UI. For personal house hunting only — no public access, no user accounts.
 
 ## Core Value
 
-Never miss a new listing that matches your criteria because you forgot to check six different sites.
+Never miss a new listing that matches your criteria because you forgot to check multiple sites (Redfin, Realtor.com, etc.).
 
 ## Requirements
 
-### Validated (Shipped)
+### Shipped
 
-- Scraper: Redfin GIS API (37 OR/WA regions) via Python stdlib `urllib`
-- Database: SQLite with deduplication (`listings`, `listing_history`, `scraper_log`)
-- Filter by user-defined criteria: price, beds, baths, city, state, sort, pagination
-- Web UI: React SPA (Vite) with map (Leaflet), price history chart (Recharts), detail page, CSV export
-- Cron-scheduled scraping: hourly inside Docker container
-- Docker deploy: container on 111:3013 with host volume for DB/logs
+- **Scrapers**: Redfin GIS API (37 OR/WA regions) + Realtor.com via HomeHarvest (12 OR/WA cities)
+- **Deduplication**: Cross-source duplicate detection (group by `address+city+state`, canonical = cheapest)
+- **Database**: SQLite with `listings`, `listing_history`, `scraper_log`, `search_criteria`, `favorites`
+- **Filters**: Price, beds, baths, city, state, sort, pagination, map bounds
+- **Browse**: Grid layout with cards, sort, pagination, saved searches dropdown, CSV export
+- **Map**: Leaflet markers with "Search this area" button — navigates to Browse with bounds
+- **Detail**: Photo placeholder, specs, price history Recharts chart, favorite toggle
+- **Favorites**: ⭐ button on cards; per-device via localStorage username
+- **Saved searches**: Stored in SQLite; apply via dropdown under filters
+- **Reports**: Price heatmap + charts
+- **Cron**: Hourly scrape + auto-dedup inside Docker container
+- **Docker deploy**: Container on `111:3013` with host volume for DB/logs
 
 ### In Progress
 
-- [ ] OR/WA state filter applied to new scrapes only; need purge of existing out-of-state rows
-- [ ] Playwright installed but no secondary scrapers written yet
+- Photo URL extraction (some Redfin, none from HomeHarvest yet)
+- Digest alerts (new matching listings → Telegram)
 
 ### Out of Scope
 
 - Multi-user / authentication — personal use only
 - Mobile app — responsive web SPA is sufficient
-- Real-time push — CSV export + manual refresh only
+- Real-time push — manual refresh + CSV export
 - Automatic offer / contact features — view-only aggregator
 
 ## Context
 
 - Runs in Docker on `111` (`10.10.10.111:3013`), Apache/PHP + Python
 - Originally prototyped on Debian Mini local Apache
-- Migrated to Docker for portability and Playwright support
+- Migrated to Docker for portability
 - Container attached to `proxy` network for Nginx Proxy Manager integration
 
 ## Constraints
@@ -50,14 +56,16 @@ Never miss a new listing that matches your criteria because you forgot to check 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | React SPA over PHP server-render | User directive; richer interactivity | Shipped |
-| Redfin GIS API over HTML scraping | Reliable JSON payload, no Cloudflare | Working |
-| OR/WA filter at scraper parse time | Prevents out-of-state DB pollution | Code live; DB cleanup pending |
-| Playwright in container image | Attempt secondary sources (403/CF blocked) | Installed, unused |
+| Redfin GIS API over HTML scraping | Reliable JSON payload, no Cloudflare | Working well |
+| OR/WA filter at scraper parse time | Prevents out-of-state DB pollution | Working |
+| HomeHarvest (Realtor.com) over hand-rolled Zillow | Purpose-built library, no Cloudflare issues | Working; 1,176 OR/WA listings ingested |
+| Deduplication by address+price | Same address on Redfin + Realtor.com = duplicate | Working; 495 duplicates hidden |
 | Vite `emptyOutDir: false` | Preserve `www/public/api/*.php` during static build | Working |
+| `--system-site-packages` venv + `apt python3-pandas` | Avoid numpy compile crash on ARM Mac Mini + Rosetta | Working |
 
 ## Repo
 
-https://github.com/westteck/home-finder (branch `main`)
+`https://github.com/westteck/home-finder` (branch `main`)
 
 ---
-*Last updated: 2026-08-07 after React SPA + Docker deploy*
+*Last updated: 2026-08-07 after dedup + map bounds feature*
