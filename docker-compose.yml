@@ -15,6 +15,7 @@ services:
       - "3013:80"
     networks:
       - home-finder-net
+      - proxy
     depends_on:
       - flaresolverr
     labels:
@@ -33,3 +34,5 @@ services:
 networks:
   home-finder-net:
     driver: bridge
+  proxy:
+    external: true
