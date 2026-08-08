@@ -14,7 +14,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 
 # Python deps in a venv (avoids Debian PEP 668 issues)
 RUN python3 -m venv /opt/venv \
-    && /opt/venv/bin/pip install --no-cache-dir playwright \
+    && /opt/venv/bin/pip install --no-cache-dir playwright beautifulsoup4 \
     && /opt/venv/bin/playwright install chromium
 
 ENV PATH="/opt/venv/bin:$PATH"

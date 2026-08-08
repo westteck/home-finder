@@ -10,9 +10,17 @@ from db import init_db, get_db, upsert_listing
 import redfin
 from regions import REGIONS
 
+try:
+    import zillow
+except ImportError:
+    zillow = None
+
 SOURCES = {
     "redfin": redfin.run,
 }
+
+if zillow is not None:
+    SOURCES["zillow"] = zillow.run
 
 
 def main():

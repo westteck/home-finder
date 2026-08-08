@@ -10,12 +10,25 @@ services:
       - /local/docker/home-finder/logs:/var/log
     environment:
       - TZ=America/Los_Angeles
+      - FLARE_SOLVERR_URL=http://flaresolverr:8191
     ports:
       - "3013:80"
     networks:
       - home-finder-net
+    depends_on:
+      - flaresolverr
     labels:
       - "traefik.enable=false"
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=info
+      - CAPTCHA_SOLVER=none
+    networks:
+      - home-finder-net
 
 networks:
   home-finder-net:
