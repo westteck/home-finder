@@ -33,6 +33,31 @@ function Layout({ children }) {
   )
 }
 
+/* ── Save Search Button ── */
+function SaveSearchButton({ filters }) {
+  const [name, setName] = useState('')
+  const [msg, setMsg] = useState('')
+  const hasFilters = Object.keys(filters).some(k => filters[k] && !['page','per_page','sort'].includes(k))
+  if (!hasFilters) return null
+  const save = async () => {
+    if (!name.trim()) { setMsg('Enter a name'); return }
+    const payload = { name: name.trim(), filters }
+    try {
+      const r = await fetch('/api/saved_searches.php', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) })
+      const data = await r.json()
+      if (data.ok || data.id) { setMsg('Saved'); setName(''); setTimeout(()=>setMsg(''),2000) }
+      else { setMsg('Failed: ' + (data.error || 'unknown')) }
+    } catch (e) { setMsg('Failed') }
+  }
+  return (
+    <div style={{marginBottom:'1rem',display:'flex',gap:'.5rem',alignItems:'center',flexWrap:'wrap'}}>
+      <input value={name} onChange={e=>{setName(e.target.value); setMsg('')}} placeholder='Search name...' style={{background:'#161b22',color:'#e6edf3',border:'1px solid #30363d',borderRadius:6,padding:'.4rem .7rem',fontSize:'.85rem'}}></input>
+      <button onClick={save} style={{background:'#1f6feb',color:'#fff',border:'none',borderRadius:6,padding:'.4rem .8rem',cursor:'pointer',fontSize:'.85rem'}}>💾 Save current search</button>
+      {msg && <span style={{fontSize:'.85rem',color:msg==='Saved'?'#3fb950':'#f85149'}}>{msg}</span>}
+    </div>
+  )
+}
+
 /* ── Saved Searches drop-down ── */
 function SavedSearches({ onApply }) {
   const [saved, setSaved] = useState([])
@@ -209,6 +234,7 @@ function Browse() {
       </div>
       <Filters defaults={filters} onSearch={setFilters} />
       <SavedSearches onApply={setFilters} />
+      <SaveSearchButton filters={filters} />
       <button onClick={exportCSV} style={{marginBottom:'1rem'}}>Export CSV</button>
       {!data ? <p style={{opacity:.5}}>Loading...</p> : (
         <>
@@ -245,6 +271,7 @@ function MapBoundsFilter({ onBoundsChange }) {
 function MapPage() {
   const navigate = useNavigate()
   const [rows, setRows] = useState([])
+  const [results, setResults] = useState(null)
   const [searchBounds, setSearchBounds] = useState(null)
   const [hasMoved, setHasMoved] = useState(false)
 
@@ -257,20 +284,23 @@ function MapPage() {
   const handleBoundsChange = bounds => {
     setHasMoved(true)
     setSearchBounds(bounds)
+    // Also clear previous results so the button re-appears
+    setResults(null)
   }
 
   const searchArea = () => {
     if (!searchBounds) return
     const sw = searchBounds.getSouthWest()
     const ne = searchBounds.getNorthEast()
-    const params = new URLSearchParams({
+    const q = new URLSearchParams({
       lat_min: String(sw.lat),
       lat_max: String(ne.lat),
       lng_min: String(sw.lng),
       lng_max: String(ne.lng),
       per_page: '50',
-    })
-    navigate('/?' + params.toString())
+      sort: 'price_asc',
+    }).toString()
+    fetchJSON(`/api/listings.php?${q}`).then(d => setResults(d))
   }
 
   if (!rows.length) return <p style={{padding:'1rem',opacity:.5}}>Loading map...</p>
@@ -288,20 +318,24 @@ function MapPage() {
   return (
     <div>
       <div style={{display:'flex',gap:'.5rem',alignItems:'center',marginBottom:'.5rem',flexWrap:'wrap'}}>
-        {hasMoved ? (
-          <>
-            <button style={{padding:'.4rem .8rem',borderRadius:6,border:'1px solid #238636',background:'#238636',color:'#fff',cursor:'pointer'}}
-              onClick={searchArea}>
-              🔍 Search this area ({boundsCount})
-            </button>
-          </>
+        {hasMoved && !results ? (
+          <button style={{padding:'.4rem .8rem',borderRadius:6,border:'1px solid #238636',background:'#238636',color:'#fff',cursor:'pointer'}}
+            onClick={searchArea}>
+            🔍 Search this area ({boundsCount})
+          </button>
         ) : null}
+        {results && (
+          <button style={{padding:'.4rem .8rem',borderRadius:6,border:'1px solid #30363d',background:'#161b22',color:'#8b949e',cursor:'pointer'}}
+            onClick={() => { setResults(null); setHasMoved(false); }}>
+            Reset
+          </button>
+        )}
         <span style={{color:'#8b949e',fontSize:'.85rem',marginLeft:'auto'}}>
-          Pan the map to search a specific area
+          {results ? `${results.total} listings found` : 'Pan the map to search a specific area'}
         </span>
       </div>
 
-      <div style={{height:'80vh',border:'1px solid #30363d',borderRadius:8,overflow:'hidden'}}>
+      <div style={{height:'50vh',border:'1px solid #30363d',borderRadius:8,overflow:'hidden',marginBottom:'1rem'}}>
         <MapContainer center={center} zoom={6} style={{height:'100%',width:'100%'}}>
           <TileLayer url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' />
           <MapBoundsFilter onBoundsChange={handleBoundsChange} />
@@ -315,6 +349,42 @@ function MapPage() {
           ))}
         </MapContainer>
       </div>
+
+      {results && (
+        <div>
+          <h3 style={{color:'#e6edf3',marginBottom:'.5rem'}}>Results in this area ({results.total})</h3>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'1rem'}}>
+            {results.listings.map(row => (
+              <div key={row.id} className='card' style={{padding:'1rem'}}>
+                <div style={{fontWeight:600,color:'#e6edf3',fontSize:'1.05rem',marginBottom:'.25rem'}}>
+                  <a href={row.url} target='_blank' rel='noreferrer' style={{color:'#e6edf3'}}>{row.address}</a>
+                </div>
+                <div style={{fontSize:'.82rem',opacity:.65,marginBottom:'.6rem'}}>{row.city}, {row.state} {row.zip}</div>
+                <div style={{display:'flex',gap:'.5rem',flexWrap:'wrap',marginBottom:'.5rem'}}>
+                  <span style={{fontWeight:700,color:'#3fb950',fontSize:'.95rem'}}>${(+row.price).toLocaleString()}</span>
+                  {row.beds ? <span style={{background:'#21262d',padding:'.15rem .5rem',borderRadius:4,fontSize:'.75rem'}}>{row.beds} bd / {row.baths} ba</span> : null}
+                  {row.sqft ? <span style={{background:'#21262d',padding:'.15rem .5rem',borderRadius:4,fontSize:'.75rem'}}>{(+row.sqft).toLocaleString()} sqft</span> : null}
+                  {row.lot_size_sqft ? <span style={{background:'#21262d',padding:'.15rem .5rem',borderRadius:4,fontSize:'.75rem'}}>{(+row.lot_size_sqft/43560).toFixed(1)} ac</span> : null}
+                </div>
+                <div style={{display:'flex',gap:'.4rem',flexWrap:'wrap',fontSize:'.75rem'}}>
+                  <span style={{background:'#1f6feb',color:'#fff',padding:'.1rem .4rem',borderRadius:4}}>{row.source.split('-')[0]}</span>
+                  <span style={{background:'#21262d',padding:'.1rem .4rem',borderRadius:4,color:'#8b949e'}}>{row.status}</span>
+                </div>
+                <div style={{marginTop:'.6rem'}}>
+                  <Link to={`/listing/${row.id}`} style={{fontSize:'.8rem'}}>View history & details →</Link>
+                </div>
+              </div>
+            ))}
+          </div>
+          {results.pages > 1 && (
+            <div style={{marginTop:'1.5rem',display:'flex',gap:'.4rem',flexWrap:'wrap'}}>
+              {Array.from({length:results.pages}, (_,i)=>i+1).map(p => (
+                <span key={p} style={{background:p===results.page?'#238636':'transparent',color:p===results.page?'#fff':'#8b949e',padding:'.3rem .6rem',borderRadius:4}}>{p}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
