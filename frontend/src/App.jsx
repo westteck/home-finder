@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Routes, Route, Link, useSearchParams, useParams } from 'react-router-dom'
+import { Routes, Route, Link, useSearchParams, useParams, useNavigate } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import SettingsPage from './Settings.jsx'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
@@ -66,43 +66,70 @@ function Filters({ defaults, onSearch }) {
   const [state, setState] = useState(defaults)
   const [opts, setOpts] = useState({ cities: [], states: [] })
   useEffect(() => { fetchJSON('/api/filters.php').then(d => setOpts(d)) }, [])
-  useEffect(() => { setState(defaults) }, [defaults])   // sync when URL changes
+  useEffect(() => { setState(defaults) }, [defaults])
 
   const submit = e => { e.preventDefault(); onSearch(state) }
-  const clear = () => { setState({}); onSearch({}) }
+  const clear = () => {
+    const preserved = {}
+    // keep lat/lng bounds across clear
+    if (state.lat_min) preserved.lat_min = state.lat_min
+    if (state.lat_max) preserved.lat_max = state.lat_max
+    if (state.lng_min) preserved.lng_min = state.lng_min
+    if (state.lng_max) preserved.lng_max = state.lng_max
+    setState(preserved)
+    onSearch(preserved)
+  }
+  const hasBounds = state.lat_min && state.lat_max && state.lng_min && state.lng_max
 
   return (
-    <form style={{display:'flex',flexWrap:'wrap',gap:'.6rem 1rem',marginBottom:'1.2rem',padding:'.9rem',background:'#161b22',border:'1px solid #30363d',borderRadius:'8px',alignItems:'flex-end'}} onSubmit={submit}>
-      <label>Min $<input type='number' value={state.min_price || ''} onChange={e=>setState({...state, min_price:e.target.value})} /></label>
-      <label>Max $<input type='number' value={state.max_price || ''} onChange={e=>setState({...state, max_price:e.target.value})} /></label>
-      <label>Beds ≥<input type='number' step='0.5' value={state.min_beds || ''} onChange={e=>setState({...state, min_beds:e.target.value})} /></label>
-      <label>Baths ≥<input type='number' step='0.5' value={state.min_baths || ''} onChange={e=>setState({...state, min_baths:e.target.value})} /></label>
-      <label>Lot(ac) ≥<input type='number' step='0.5' value={state.min_lot || ''} onChange={e=>setState({...state, min_lot:e.target.value})} /></label>
-      <label>State
-        <select value={state.state||''} onChange={e=>setState({...state, state:e.target.value})}>
-          <option value=''>Any</option>
-          {opts.states.map(s=> <option key={s} value={s}>{s}</option>)}
-        </select>
-      </label>
-      <label>City
-        <select value={state.city||''} onChange={e=>setState({...state, city:e.target.value})}>
-          <option value=''>Any</option>
-          {opts.cities.map(c=> <option key={c} value={c}>{c}</option>)}
-        </select>
-      </label>
-      <label>Search<input type='text' value={state.q||''} placeholder='address, zip...' onChange={e=>setState({...state, q:e.target.value})} /></label>
-      <label>Sort
-        <select value={state.sort||'price_asc'} onChange={e=>setState({...state, sort:e.target.value})}>
-          <option value='price_asc'>Price ▲</option>
-          <option value='price_desc'>Price ▼</option>
-          <option value='beds_desc'>Beds ▼</option>
-          <option value='lot_desc'>Lot ▼</option>
-          <option value='newest'>Newest</option>
-        </select>
-      </label>
-      <button type='submit' style={{background:'#238636',color:'#fff',fontWeight:600,padding:'.5rem 1.2rem',borderRadius:6,border:'1px solid #238636',cursor:'pointer'}}>Search</button>
-      <button type='button' onClick={clear} style={{background:'transparent',color:'#8b949e',border:'1px solid #30363d',padding:'.5rem .8rem',borderRadius:6,cursor:'pointer'}}>Clear</button>
-    </form>
+    <div>
+      {hasBounds && (
+        <div style={{background:'#161b22',border:'1px solid #1f6feb',borderRadius:8,padding:'.7rem 1rem',marginBottom:'.8rem',display:'flex',alignItems:'center',gap:'.8rem'}}>
+          <span style={{fontSize:'.9rem'}}>📍 Map area bounded search active</span>
+          <button type='button' onClick={()=>{ const s={...state}; delete s.lat_min; delete s.lat_max; delete s.lng_min; delete s.lng_max; setState(s); onSearch(s); }}
+            style={{marginLeft:'auto',background:'transparent',color:'#f85149',border:'1px solid #f85149',padding:'.25rem .6rem',borderRadius:4,cursor:'pointer',fontSize:'.8rem'}}>Clear bounds</button>
+        </div>
+      )}
+      <form style={{display:'flex',flexWrap:'wrap',gap:'.6rem 1rem',marginBottom:'1.2rem',padding:'.9rem',background:'#161b22',border:'1px solid #30363d',borderRadius:'8px',alignItems:'flex-end'}} onSubmit={submit}>
+        <input type='hidden' value={state.lat_min||''} />
+        <input type='hidden' value={state.lat_max||''} />
+        <input type='hidden' value={state.lng_min||''} />
+        <input type='hidden' value={state.lng_max||''} />
+        <label>Min $<input type='number' value={state.min_price || ''} onChange={e=>setState({...state, min_price:e.target.value})} /></label>
+        <label>Max $<input type='number' value={state.max_price || ''} onChange={e=>setState({...state, max_price:e.target.value})} /></label>
+        <label>Beds ≥<input type='number' step='0.5' value={state.min_beds || ''} onChange={e=>setState({...state, min_beds:e.target.value})} /></label>
+        <label>Baths ≥<input type='number' step='0.5' value={state.min_baths || ''} onChange={e=>setState({...state, min_baths:e.target.value})} /></label>
+        <label>Lot(ac) ≥<input type='number' step='0.5' value={state.min_lot || ''} onChange={e=>setState({...state, min_lot:e.target.value})} /></label>
+        <label>State
+          <select value={state.state||''} onChange={e=>setState({...state, state:e.target.value})}>
+            <option value=''>Any</option>
+            {opts.states.map(s=> <option key={s} value={s}>{s}</option>)}
+          </select>
+        </label>
+        <label>City
+          <select value={state.city||''} onChange={e=>setState({...state, city:e.target.value})}>
+            <option value=''>Any</option>
+            {opts.cities.map(c=> <option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
+        <label>Search<input type='text' value={state.q||''} placeholder='address, zip...' onChange={e=>setState({...state, q:e.target.value})} /></label>
+        <label>Sort
+          <select value={state.sort||'price_asc'} onChange={e=>setState({...state, sort:e.target.value})}>
+            <option value='price_asc'>Price ▲</option>
+            <option value='price_desc'>Price ▼</option>
+            <option value='beds_desc'>Beds ▼</option>
+            <option value='lot_desc'>Lot ▼</option>
+            <option value='newest'>Newest</option>
+          </select>
+        </label>
+        <button type='submit' style={{background:'#238636',color:'#fff',fontWeight:600,padding:'.5rem 1.2rem',borderRadius:6,border:'1px solid #238636',cursor:'pointer'}}>Search</button>
+        <button type='button' onClick={clear} style={{background:'transparent',color:'#8b949e',border:'1px solid #30363d',padding:'.5rem .8rem',borderRadius:6,cursor:'pointer'}}>Clear</button>
+        <label style={{display:'flex',alignItems:'center',gap:'.4rem',fontSize:'.85rem',color:'#8b949e'}}>
+          <input type='checkbox' checked={!!state.all} onChange={e=>setState({...state, all: e.target.checked ? '1' : ''})} />
+          Show duplicates
+        </label>
+      </form>
+    </div>
   )
 }
 
@@ -216,16 +243,14 @@ function MapBoundsFilter({ onBoundsChange }) {
 }
 
 function MapPage() {
+  const navigate = useNavigate()
   const [rows, setRows] = useState([])
-  const [filtered, setFiltered] = useState([])
   const [searchBounds, setSearchBounds] = useState(null)
   const [hasMoved, setHasMoved] = useState(false)
 
   useEffect(() => {
     fetchJSON('/api/listings.php?per_page=9999').then(d => {
-      const withCoords = d.listings.filter(r => r.latitude && r.longitude)
-      setRows(withCoords)
-      setFiltered(withCoords)
+      setRows(d.listings.filter(r => r.latitude && r.longitude))
     })
   }, [])
 
@@ -234,23 +259,18 @@ function MapPage() {
     setSearchBounds(bounds)
   }
 
-  const applyBounds = () => {
+  const searchArea = () => {
     if (!searchBounds) return
     const sw = searchBounds.getSouthWest()
     const ne = searchBounds.getNorthEast()
-    setFiltered(rows.filter(r => {
-      const lat = +r.latitude
-      const lng = +r.longitude
-      return lat >= sw.lat && lat <= ne.lat && lng >= sw.lng && lng <= ne.lng
-    }))
-    setHasMoved(false)
-  }
-
-  const clearBounds = () => {
-    if (!searchBounds) return
-    setFiltered(rows)
-    setHasMoved(false)
-    setSearchBounds(null)
+    const params = new URLSearchParams({
+      lat_min: String(sw.lat),
+      lat_max: String(ne.lat),
+      lng_min: String(sw.lng),
+      lng_max: String(ne.lng),
+      per_page: '50',
+    })
+    navigate('/?' + params.toString())
   }
 
   if (!rows.length) return <p style={{padding:'1rem',opacity:.5}}>Loading map...</p>
@@ -271,17 +291,13 @@ function MapPage() {
         {hasMoved ? (
           <>
             <button style={{padding:'.4rem .8rem',borderRadius:6,border:'1px solid #238636',background:'#238636',color:'#fff',cursor:'pointer'}}
-              onClick={applyBounds}>
+              onClick={searchArea}>
               🔍 Search this area ({boundsCount})
-            </button>
-            <button style={{padding:'.4rem .8rem',borderRadius:6,border:'1px solid #30363d',background:'#161b22',color:'#8b949e',cursor:'pointer'}}
-              onClick={clearBounds}>
-              Reset
             </button>
           </>
         ) : null}
         <span style={{color:'#8b949e',fontSize:'.85rem',marginLeft:'auto'}}>
-          Showing {filtered.length} listings
+          Pan the map to search a specific area
         </span>
       </div>
 
@@ -289,7 +305,7 @@ function MapPage() {
         <MapContainer center={center} zoom={6} style={{height:'100%',width:'100%'}}>
           <TileLayer url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' />
           <MapBoundsFilter onBoundsChange={handleBoundsChange} />
-          {filtered.map(r => (
+          {rows.map(r => (
             <Marker key={r.id} position={[+r.latitude, +r.longitude]}>
               <Popup>
                 <a href={r.url} target='_blank' rel='noreferrer'>{r.address}</a>

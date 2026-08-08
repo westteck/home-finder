@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS listings (
     listed_date TEXT,
     latitude    REAL,
     longitude   REAL,
+    duplicate_group TEXT,
+    is_canonical INTEGER DEFAULT 1,
     created_at  TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at  TEXT DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(source, source_id)

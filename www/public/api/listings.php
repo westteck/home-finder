@@ -20,6 +20,7 @@ $lngMin    = (float) param('lng_min', 0);
 $lngMax    = (float) param('lng_max', 0);
 $page      = max(1, (int) param('page', 1));
 $perPage   = (int) param('per_page', 50) ?: 50;
+$allDupes  = param('all', '');
 
 $order = match ($sort) {
     'price_desc' => 'price DESC',
@@ -34,6 +35,8 @@ $order = match ($sort) {
 
 $where = ['price BETWEEN ? AND ?'];
 $bindings = [$minPrice, $maxPrice];
+
+if (!$allDupes) { $where[] = 'is_canonical = 1'; }
 
 if ($minBeds > 0)  { $where[] = 'beds >= ?';   $bindings[] = $minBeds; }
 if ($minBaths > 0) { $where[] = 'baths >= ?';  $bindings[] = $minBaths; }
