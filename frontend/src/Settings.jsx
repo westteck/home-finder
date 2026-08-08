@@ -52,9 +52,9 @@ export default function SettingsPage() {
 
   const SOURCES = [
     { name: 'Redfin', key: 'redfin', status: 'Active — GIS API ✅' },
-    { name: 'Zillow', key: 'zillow', status: 'Active — FlareSolverr ✅' },
+    { name: 'Realtor.com', key: 'realtor', status: 'Active — HomeHarvest ✅' },
+    { name: 'Zillow', key: 'zillow', status: 'Blocked — Cloudflare 🚫' },
     { name: 'LandWatch', key: 'landwatch', status: 'Blocked — Cloudflare 🚫' },
-    { name: 'Realtor.com', key: 'realtor', status: 'Blocked — Cloudflare 🚫' },
     { name: 'LoopNet', key: 'loopnet', status: 'Blocked — Cloudflare 🚫' },
     { name: 'MLS/NWMLS/BrightMLS', key: 'mls', status: 'Gated — no public API 🚫' },
   ]

@@ -1,8 +1,8 @@
 FROM php:8.2-apache
 
-# System deps: Python3, Playwright, cron, SQLite, Node
+# System deps: Python3, Playwright, cron, SQLite, Node + pandas via apt (pre-built, avoids compilation)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip python3-venv python3-requests python3-bs4 cron sqlite3 \
+    python3 python3-pip python3-venv python3-requests python3-bs4 python3-pandas python3-numpy cron sqlite3 \
     curl gnupg ca-certificates libnss3 libatk-bridge2.0-0 libxss1 libgtk-3-0 \
     libasound2 libdbus-glib-1-2 libxt6 \
     && rm -rf /var/lib/apt/lists/*
@@ -12,9 +12,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Python deps in a venv (avoids Debian PEP 668 issues)
-RUN python3 -m venv /opt/venv \
-    && /opt/venv/bin/pip install --no-cache-dir playwright beautifulsoup4 \
+# Python deps in a venv (inherits apt pandas/numpy to avoid compilation)
+RUN python3 -m venv --system-site-packages /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir playwright beautifulsoup4 homeharvest \
     && /opt/venv/bin/playwright install chromium
 
 ENV PATH="/opt/venv/bin:$PATH"

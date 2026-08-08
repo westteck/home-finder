@@ -13,28 +13,33 @@ HEADERS = {
 def extract_search_results(html: str) -> list[dict]:
     """Pull searchResults JSON out of Next.js hydrated HTML."""
     # Try multiple patterns for embedded JSON
-    patterns = [
-        r'"searchResults":(\{.*?\])',
-        r'"__PRELOADED_STATE__":(\{.*?\})',
-        r'window\.__PRELOADED_STATE__\s*=\s*(\{.*?\});',
-    ]
-    for pat in patterns:
+    import re
+    # Pattern 1: searchResults key with listResults array
+    m = re.search(r'"listResults":(\[.*?\])', html, re.DOTALL)
+    if m:
+        try:
+            return json.loads(m.group(1))
+        except json.JSONDecodeError:
+            pass
+    # Pattern 2: broader searchResults object
+    m = re.search(r'"searchResults":(\{.*?\})', html, re.DOTALL)
+    if m:
+        try:
+            data = json.loads(m.group(1))
+            return data.get("listResults", [])
+        except json.JSONDecodeError:
+            pass
+    # Pattern 3: window.__SSR__ or __PRELOADED_STATE__
+    for pat in [r'window\.__SSR__\s*=\s*(\{.*?\});',
+                r'window\.__PRELOADED_STATE__\s*=\s*(\{.*?\});']:
         m = re.search(pat, html, re.DOTALL)
         if m:
             try:
                 data = json.loads(m.group(1))
-                if "searchResults" in data:
-                    return data["searchResults"].get("listResults", [])
-                return data.get("listResults", [])
+                sr = data.get("searchResults") or data.get("pageProps", {}).get("searchResults", {})
+                return sr.get("listResults", [])
             except json.JSONDecodeError:
                 continue
-    # Last resort: find raw searchResults JSON snippet
-    m = re.search(r'searchResults\\":(\\{.*?\\])', html, re.DOTALL)
-    if m:
-        try:
-            return json.loads(m.group(1)).get("listResults", [])
-        except json.JSONDecodeError:
-            pass
     return []
 
 def parse_listing(z: dict) -> dict | None:

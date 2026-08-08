@@ -11,16 +11,16 @@ import redfin
 from regions import REGIONS
 
 try:
-    import zillow
+    import homeharvest_scraper as hh
 except ImportError:
-    zillow = None
+    hh = None
 
 SOURCES = {
     "redfin": redfin.run,
 }
 
-if zillow is not None:
-    SOURCES["zillow"] = zillow.run
+if hh is not None:
+    SOURCES["realtor"] = hh.run
 
 
 def main():
