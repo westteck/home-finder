@@ -180,9 +180,39 @@ function Card({ row, favIds, onToggleFav }) {
         <span style={{background:'#1f6feb',color:'#fff',padding:'.1rem .4rem',borderRadius:4}}>{row.source.split('-')[0]}</span>
         <span style={{background:'#21262d',padding:'.1rem .4rem',borderRadius:4,color:'#8b949e'}}>{row.status}</span>
       </div>
+      {row.price_per_sqft && row.sqft > 0 && <div style={{fontSize:'.78rem',color:'#3fb950',marginTop:'.4rem'}}>${Math.round(+row.price_per_sqft).toLocaleString()}/sqft</div>}
+      {row.price_per_acre && row.lot_size_sqft > 0 && <div style={{fontSize:'.78rem',color:'#3fb950',marginTop:'.4rem'}}>${Math.round(+row.price_per_acre * 43560).toLocaleString()}/acre</div>}
       <div style={{marginTop:'.6rem'}}>
         <Link to={`/listing/${row.id}`} style={{fontSize:'.8rem'}}>View history & details →</Link>
       </div>
+    </div>
+  )
+}
+
+/* ── Smart Presets — one-click value searches ── */
+const PRESETS = [
+  { key:'best_value', label:'Best Value', emoji:'💰', desc:'Lowest $/sqft' },
+  { key:'budget', label:'Under $150k', emoji:'💵', desc:'Cheap listings', },
+  { key:'family_starter', label:'Family Starter', emoji:'👪', desc:'3+ beds under $350k', },
+  { key:'acreage', label:'1+ Acre Under $500k', emoji:'🌲', desc:'Land-friendly', },
+  { key:'big_land', label:'10+ Acres', emoji:'🏞️', desc:'Rural / farm', },
+  { key:'fixer', label:'Fixer-Upper', emoji:'🔧', desc:'Under $100k with sqft', },
+  { key:'price_drop', label:'Price Drop', emoji:'📉', desc:'Recent price cut', },
+]
+function Presets({ onSelect }) {
+  return (
+    <div style={{display:'flex',gap:'.5rem',flexWrap:'wrap',marginBottom:'1rem'}}>
+      {PRESETS.map(p => (
+        <button
+          key={p.key}
+          onClick={() => onSelect({ preset: p.key, page:'1' })}
+          style={{background:'#161b22',color:'#e6edf3',border:'1px solid #30363d',borderRadius:6,padding:'.4rem .7rem',cursor:'pointer',fontSize:'.82rem',display:'flex',alignItems:'center',gap:'.3rem'}}
+          title={p.desc}
+        >
+          <span>{p.emoji}</span>
+          <span>{p.label}</span>
+        </button>
+      ))}
     </div>
   )
 }
@@ -195,10 +225,14 @@ function Browse() {
   const [stats, setStats] = useState(null)
 
   const page = parseInt(filters.page || '1', 10)
-  const query = new URLSearchParams({ ...filters, page: String(page) }).toString()
+  const isPreset = !!filters.preset
+  const baseQuery = isPreset
+    ? new URLSearchParams({ type: filters.preset, page: String(page), per_page: '24' }).toString()
+    : new URLSearchParams({ ...filters, page: String(page) }).toString()
+  const endpoint = isPreset ? `/api/preset_search.php?${baseQuery}` : `/api/listings.php?${baseQuery}`
 
   useEffect(() => { fetchJSON('/api/stats.php').then(d => setStats(d)) }, [])
-  useEffect(() => { setData(null); fetchJSON(`/api/listings.php?${query}`).then(d => setData(d)) }, [query])
+  useEffect(() => { setData(null); fetchJSON(endpoint).then(d => setData(d)) }, [endpoint])
   useEffect(() => { setSp(new URLSearchParams(filters), {replace:true}) }, [filters])
 
   // Favorites
@@ -233,9 +267,11 @@ function Browse() {
         {data && <span style={{background:'#161b22',padding:'.4rem .8rem',borderRadius:6,border:'1px solid #30363d'}}>Results: <strong>{data.total.toLocaleString()}</strong></span>}
       </div>
       <Filters defaults={filters} onSearch={setFilters} />
+      <Presets onSelect={setFilters} />
       <SavedSearches onApply={setFilters} />
       <SaveSearchButton filters={filters} />
       <button onClick={exportCSV} style={{marginBottom:'1rem'}}>Export CSV</button>
+      {data?.type && <span style={{fontSize:'.85rem',color:'#1f6feb',marginBottom:'1rem',display:'block'}}>🔎 Smart search: {data.type.replace(/_/g,' ')}</span>}
       {!data ? <p style={{opacity:.5}}>Loading...</p> : (
         <>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'1rem'}}>
