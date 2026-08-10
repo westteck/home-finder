@@ -1,42 +1,43 @@
-# ROADMAP: Home Finder
+# Roadmap
 
-## Overview
+## Phase 1 — Foundation ✅
+- [x] SQLite schema (`listings`, `listing_history`)
+- [x] Redfin GIS scraper (37 OR/WA regions)
+- [x] PHP API endpoints (`listings`, `listing`, `history`, `stats`, `filters`)
+- [x] React SPA (Browse, Detail, Reports, Settings)
+- [x] Docker container + cron
 
-| Phase | Focus | Status |
-|-------|-------|--------|
-| Phase 1 | Scraper skeleton + SQLite schema + first source | DONE |
-| Phase 2 | Multi-region + deduplication + data integrity | DONE |
-| Phase 3 | React SPA (browse, sort, filter, map, detail, history chart, export) | DONE |
-| Phase 4 | Docker container + cron + dedup + dual scrapers | DONE |
-| Phase 5 | Photos + digest alerts + secondary scraper attempts | NEXT |
-| Phase 6 | Nginx Proxy Manager + public domain | PENDING |
+## Phase 2 — Multi-Source ✅
+- [x] HomeHarvest scraper (Realtor.com)
+- [x] Auto-deduplication (`address+city+state`, cheapest canonical)
+- [x] `is_canonical` / `all=1` toggle
+- [x] `lot_size_sqft` conversion
 
-## Phase 1–4 Completed Summary
+## Phase 3 — Map + Location ✅
+- [x] Add `latitude`/`longitude` columns
+- [x] Backfill coords from `raw_json`
+- [x] Map bounds filter (`lat_min`, `lat_max`, `lng_min`, `lng_max`)
+- [x] "Search this area" (in-page results below map)
+- [x] Nginx Proxy Manager integration (`homes.westteck.home`)
 
-- Redfin GIS API scraper: 37 OR/WA regions
-- Realtor.com scraper: HomeHarvest library, 12 OR/WA cities
-- Cross-source deduplication: 495 duplicates hidden, 1,431 canonical listings
-- Map bounds search: "Search this area" → Browse with lat/lng bounds filter
-- Browse: grid cards, sort, pagination, saved searches, CSV export, favorites
-- Detail: price history chart (Recharts), specifications table
-- Settings: source status, data quality indicator, saved searches manager
-- Docker: `compose build && compose up -d --force-recreate` workflow
+## Phase 4 — UX Polish ✅
+- [x] Save Current Search button + dropdown
+- [x] Migrate legacy `search_criteria` → `saved_searches`
+- [x] 7 preset searches (Best Value, Budget, Family Starter, Acreage, Big Land, Fixer, Price Drop)
+- [x] Show `$/sqft` and `$/acre` on listing cards
+- [x] Fix `history.php` column mismatch (`checked_at` → `changed_at`)
 
-## Phase 5: Photos + Alerts + Secondary Sources
+## Phase 5 — Alerts & Automation 🔄
+- [ ] Price-change detection in scraper (populate `listing_history`)
+- [ ] Telegram digest bot (new matching listings → message)
+- [ ] Scheduled saved-search digest emails / messages
 
-**Goal**: Extract listing photos, add new-listing digest alerts, attempt Playwright for blocked sites.
-
-**Deliverables**:
-- Map `primary_photo` from HomeHarvest results to `photo_url` in DB
-- Map Redfin image URLs to `photo_url`
-- Telegram digest: "N new listings matching your saved search"
-- Attempt Playwright for Zillow / LandWatch (likely blocked; document results)
-
-## Phase 6: Public Access
-
-**Goal**: Serve via `homes.westteck.home` through Nginx Proxy Manager.
-
-**Requires**: Manual port addition in NPM; Pi-hole already points domain to 111.
+## Phase 6 — Scale
+- [ ] Add more OR/WA cities to HomeHarvest
+- [ ] Retry residential IP rotation (Proton VPN) for Zillow
+- [ ] Photo URL extraction and Gallery view option
+- [ ] Admin dashboard with scrape logs
+- [ ] Automated deploy script (rsync from git on cron)
 
 ---
-*Last updated: 2026-08-07*
+*Updated: 2026-08-09*

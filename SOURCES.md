@@ -2,42 +2,41 @@
 
 ## Active
 
-| Site | Method | Status | Notes |
-|------|--------|--------|-------|
-| Redfin | GIS API (internal) | Active | 37 OR/WA regions; JSON with `lstrip("{}").lstrip("&&")` prefix strip |
-| Realtor.com | HomeHarvest (Python library) | Active | 12 OR/WA cities via HomeHarvest `scrape_property()`; returns pandas DataFrame; filters OR/WA at parse time |
+| Source | Tech | Coverage | Listings | Notes |
+|--------|------|----------|----------|-------|
+| Redfin GIS API | `urllib` + JSON parse | 37 OR/WA regions | ~1,052 (of 2,468 total) | Internal GIS endpoint, no rate limit observed |
+| Realtor.com (HomeHarvest) | `homeharvest` library | 12 OR/WA cities | ~1,416 (of 2,468 total) | Returns structured data; no API key needed |
 
-## Deduplication
+## Blocked
 
-After every scrape, `scraper/dedup.py` runs:
-- Groups listings by `address + city + state`
-- Marks **lowest price** as `is_canonical = 1`
-- Marks all others in the group `is_canonical = 0`
-- API returns canonical only by default (`all=1` to show duplicates)
-- Browse page has a **"Show duplicates"** checkbox
+| Source | Reason | Status |
+|--------|--------|--------|
+| Zillow.com | Cloudflare bot challenge + JS-rendered | Blocked 🚫 |
+| LandWatch.com | Cloudflare bot challenge | Blocked 🚫 |
 
-**Current counts:**
-- Total listings: ~1,926
-- Canonical (unique addresses): ~1,431
-- Hidden duplicates: ~495
+## Database Distribution
 
-## Attempted / Blocked
+- **2,468 total rows** (includes 522 hidden duplicates)
+- **1,946 canonical** (cheapest per `address+city+state`)
+- **1,583 have latitude/longitude** (backfilled from `raw_json`)
 
-| Site | Blocker | Notes |
-|------|---------|-------|
-| Zillow | Cloudflare + no public API | HTML is JS-rendered; Playwright not attempted |
-| LandWatch | 403 / bot challenge | Requires JS execution |
-| LoopNet | 403 | Commercial focus |
-| PropertyShark | 403 | Paywalled |
-| MLS / NWMLS / BrightMLS | Gated / login required | No public API |
+## Photo URLs
 
-## Playwright Candidates
+- **NULL for ~95%** of listings
+- Redfin provides some primary_photo URLs in `raw_json`
+- HomeHarvest `primary_photo` is not mapped to `photo_url` column
+- UI renders text-only cards by design (photos were disabled per user request)
 
-Sites to attempt with Playwright headless once prioritized:
+## Deduplication Logic
 
-1. **Zillow** — `zillow.com/homes/` search results
-2. **LandWatch** — `landwatch.com` (land / rural focus, matches lot-size criteria)
+```
+GROUP BY address || city || state
+  → cheapest listing_id = is_canonical = 1
+  → others = is_canonical = 0 (hidden by default)
+  → `all=1` param or "Show duplicates" checkbox reveals all
+```
 
-## LLM / AI Usage
+Auto-runs after every scrape via `scraper/dedup.py`.
 
-No LLM is used at runtime in the app. This project was built with assistance from Hermes Agent (local CLI agent); no external AI services are called during scraping, filtering, or serving.
+---
+*Updated: 2026-08-09*

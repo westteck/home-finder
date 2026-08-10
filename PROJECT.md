@@ -1,71 +1,36 @@
-# Home Finder
-
-## What This Is
-
-Personal real estate listing scraper and aggregator for Oregon and Washington listings. Monitors multiple sources, stores them in a local SQLite database, and surfaces matches via a React web UI. For personal house hunting only — no public access, no user accounts.
-
-## Core Value
-
-Never miss a new listing that matches your criteria because you forgot to check multiple sites (Redfin, Realtor.com, etc.).
-
-## Requirements
-
-### Shipped
-
-- **Scrapers**: Redfin GIS API (37 OR/WA regions) + Realtor.com via HomeHarvest (12 OR/WA cities)
-- **Deduplication**: Cross-source duplicate detection (group by `address+city+state`, canonical = cheapest)
-- **Database**: SQLite with `listings`, `listing_history`, `scraper_log`, `search_criteria`, `favorites`
-- **Filters**: Price, beds, baths, city, state, sort, pagination, map bounds
-- **Browse**: Grid layout with cards, sort, pagination, saved searches dropdown, CSV export
-- **Map**: Leaflet markers with "Search this area" button — navigates to Browse with bounds
-- **Detail**: Photo placeholder, specs, price history Recharts chart, favorite toggle
-- **Favorites**: ⭐ button on cards; per-device via localStorage username
-- **Saved searches**: Stored in SQLite; apply via dropdown under filters
-- **Reports**: Price heatmap + charts
-- **Cron**: Hourly scrape + auto-dedup inside Docker container
-- **Docker deploy**: Container on `111:3013` with host volume for DB/logs
-
-### In Progress
-
-- Photo URL extraction (some Redfin, none from HomeHarvest yet)
-- Digest alerts (new matching listings → Telegram)
-
-### Out of Scope
-
-- Multi-user / authentication — personal use only
-- Mobile app — responsive web SPA is sufficient
-- Real-time push — manual refresh + CSV export
-- Automatic offer / contact features — view-only aggregator
-
-## Context
-
-- Runs in Docker on `111` (`10.10.10.111:3013`), Apache/PHP + Python
-- Originally prototyped on Debian Mini local Apache
-- Migrated to Docker for portability
-- Container attached to `proxy` network for Nginx Proxy Manager integration
-
-## Constraints
-
-- **Tech**: Python 3 (scraping) + SQLite (storage) + PHP JSON API + React SPA
-- **Runtime**: Docker container with cron, no external cloud dependencies
-- **Rate limits**: Respect target sites (delay, rotate UA, cap retries)
-- **Legal**: Personal use only; terms-of-service aware scraping
+# Project Log
 
 ## Key Decisions
 
-| Decision | Rationale | Outcome |
-|----------|-----------|---------|
-| React SPA over PHP server-render | User directive; richer interactivity | Shipped |
-| Redfin GIS API over HTML scraping | Reliable JSON payload, no Cloudflare | Working well |
-| OR/WA filter at scraper parse time | Prevents out-of-state DB pollution | Working |
-| HomeHarvest (Realtor.com) over hand-rolled Zillow | Purpose-built library, no Cloudflare issues | Working; 1,176 OR/WA listings ingested |
-| Deduplication by address+price | Same address on Redfin + Realtor.com = duplicate | Working; 495 duplicates hidden |
-| Vite `emptyOutDir: false` | Preserve `www/public/api/*.php` during static build | Working |
-| `--system-site-packages` venv + `apt python3-pandas` | Avoid numpy compile crash on ARM Mac Mini + Rosetta | Working |
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | SQLite over MySQL/Postgres | Zero-config, single file, host bind mount, survives container rebuilds |
+| 2 | HomeHarvest over Zillow scraper | Zillow blocked by Cloudflare; HomeHarvest purpose-built for Realtor.com |
+| 3 | `--system-site-packages` venv | Avoids numpy compile crash on ARM Mac Mini + Rosetta (inherits apt `python3-pandas`) |
+| 4 | In-page map results instead of router navigate | `BrowserRouter` + Apache rewrite silently drops query params; state-based avoids bug |
+| 5 | Dedup by exact address+city+state | Cheapest wins canonical; simple, deterministic, covers most cross-source overlap |
+| 6 | PHP PDO API (vanilla) | No frameworks, fast to patch, runs in container with zero extra deps |
+| 7 | React SPA with Search button (not live filter) | Avoids spamming API on every keystroke; user clicks to search |
+| 8 | Text-only cards (no images) | User preference; avoids layout shift, loads fast, works without photo URLs |
+| 9 | Preset searches on Browse page | One-click value filters ($/sqft, budget, acreage) without typing ranges |
+| 10 | Nginx Proxy Manager for external access | `homes.westteck.home` → container via shared `proxy` network; SSL managed by NPM |
 
-## Repo
+## Mistakes / Fixes
 
-`https://github.com/westteck/home-finder` (branch `main`)
+| Date | Issue | Fix |
+|------|-------|-----|
+| 2026-08-07 | `latitude`/`longitude` columns missing from schema | Added columns + backfilled 1,278 from `raw_json` |
+| 2026-08-07 | Map "Search this area" navigated to Browse but params dropped | Rewrote to in-page state; results render below map |
+| 2026-08-07 | `saved_searches` table empty; UI showed dropdown but nothing | Migrated legacy `search_criteria` row → `saved_searches`; added Save button |
+| 2026-08-08 | `nginx_proxy_manager` couldn't reach container | Joined `home-finder` to external `proxy` network; updated NPM DB row |
+| 2026-08-08 | `history.php` referenced nonexistent `checked_at` column | Renamed to `changed_at` (matches actual schema) |
+| 2026-08-08 | All preset buttons returned identical counts | PHP `switch` was falling through; fixed with `break` statements |
+
+## Pending
+
+- Price-change detection in scrapers → more `listing_history` records
+- Telegram digest alerts
+- Automated deploy script (GitHub Actions or cron)
 
 ---
-*Last updated: 2026-08-07 after dedup + map bounds feature*
+*Updated: 2026-08-09*
