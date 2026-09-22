@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Project Open/Close Workflow</title>
+<style>
+  body { background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; margin: 0; padding: 2rem; }
+  h1 { color: #58a6ff; border-bottom: 1px solid #30363d; padding-bottom: .5rem; }
+  .flow { display: flex; gap: 1rem; align-items: center; margin: 1.5rem 0; flex-wrap: wrap; }
+  .box { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1rem 1.2rem; min-width: 160px; }
+  .box.start { border-color: #238636; background: #0d2818; }
+  .box.end { border-color: #f85149; background: #2d1216; }
+  .box.action { border-color: #1f6feb; background: #0d1b33; }
+  .box.decision { border-color: #d29922; background: #2d2006; }
+  .arrow { color: #8b949e; font-size: 1.5rem; }
+  .label { font-size: .75rem; opacity: .7; margin-top: .3rem; }
+  .title { font-weight: 600; color: #e6edf3; margin-bottom: .2rem; }
+  .split { display: flex; gap: 2rem; margin-top: 1rem; }
+  .col { flex: 1; }
+  .col h2 { color: #58a6ff; font-size: 1rem; margin-bottom: .5rem; }
+  ul { margin: .3rem 0; padding-left: 1.2rem; }
+  li { margin: .2rem 0; font-size: .9rem; }
+  code { background: #21262d; padding: .1rem .4rem; border-radius: 4px; font-size: .85rem; }
+</style>
+</head>
+<body>
+<h1>Project Open / Close Workflows</h1>
+
+<div class="flow">
+  <div class="box start"><div class="title">Trigger</div><div>"open project" / "close project"</div></div>
+  <div class="arrow">→</div>
+  <div class="box decision"><div class="title">Detect Project</div><div>~/projects/*, /var/www/*, or any dir with <code>docs/</code></div><div class="label">Else: ask user</div></div>
+  <div class="arrow">→</div>
+  <div class="box action"><div class="title">Gather Context</div><div>Session accomplishments, state, blockers, next steps</div></div>
+</div>
+
+<div class="split">
+  <div class="col">
+    <h2>📂 Open Project</h2>
+    <div class="flow">
+      <div class="box action"><div class="title">Fetch Trilium Note</div><div>Lookup by title under <code>boawourQbhZ1</code></div></div>
+    </div>
+    <div class="flow">
+      <div class="box action"><div class="title">Restore State</div><div>Accomplishments, stack, links, next steps</div></div>
+    </div>
+    <div class="flow">
+      <div class="box end"><div class="title">Resume Work</div><div>Continue with full context</div></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <h2>🔒 Close Project</h2>
+    <div class="flow">
+      <div class="box action"><div class="title">Update Local Docs</div><div><code>PROJECT_SUMMARY.md</code> — prepend session entry</div><div><code>NEXT_STEPS.md</code> — mark done, append new</div></div>
+    </div>
+    <div class="flow">
+      <div class="box decision"><div class="title">Trilium Note Exists?</div><div>Fetch children of <code>boawourQbhZ1</code></div></div>
+    </div>
+    <div class="flow">
+      <div class="box action"><div class="title">Save to Trilium</div><div>If found → PUT updated content (prepend)</div><div>If not → POST new note</div></div>
+    </div>
+    <div class="flow">
+      <div class="box end"><div class="title">Confirm</div><div>"✅ Saved. 'open project' to resume."</div></div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:2rem; padding:1rem; background:#161b22; border:1px solid #30363d; border-radius:8px;">
+  <div style="font-weight:600; color:#e6edf3; margin-bottom:.5rem;">⚠️ Hard Rules</div>
+  <ul>
+    <li><b>Append for history</b> — session logs/decisions accumulate forever; never delete old entries</li>
+    <li><b>Replace for facts</b> — stack/architecture details can be updated when they change</li>
+    <li><b>Never blind-replace</b> — always fetch existing Trilium content first, then prepend new session block</li>
+    <li><b>Local docs are supplementary</b> — Trilium is canonical</li>
+  </ul>
+</div>
+</body>
+</html>

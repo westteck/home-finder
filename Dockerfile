@@ -39,4 +39,4 @@ RUN printf "SHELL=/bin/sh\nPATH=/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/us
 ENV TZ=America/Los_Angeles
 EXPOSE 80
 
-ENTRYPOINT ["sh", "-c", "mkdir -p /app/data /var/log /var/log/apache2 && PYTHONPATH=/app/scraper /opt/venv/bin/python3 /app/scraper/main.py >> /app/data/scraper.log 2>&1 && PYTHONPATH=/app/scraper /opt/venv/bin/python3 /app/scraper/dedup.py >> /app/data/scraper.log 2>&1 && cron && apachectl -D FOREGROUND"]
+ENTRYPOINT ["/bin/sh", "-c", "mkdir -p /app/data /var/log /var/log/apache2 && cron && (PYTHONPATH=/app/scraper /opt/venv/bin/python3 /app/scraper/main.py >> /app/data/scraper.log 2>&1 &) && (PYTHONPATH=/app/scraper /opt/venv/bin/python3 /app/scraper/dedup.py >> /app/data/scraper.log 2>&1 &) && apachectl -D FOREGROUND"]

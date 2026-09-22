@@ -9,7 +9,7 @@ export default function SettingsPage() {
   const [favs, setFavs] = useState([])
   const [newSearch, setNewSearch] = useState({ name: '', filters: {}, notify: false })
   const [msg, setMsg] = useState('')
-  const [keys, setKeys] = useState({ zillow: '', redfin: '', landwatch: '', realtor: '', loopnet: '' })
+  const [keys, setKeys] = useState({ zillow: '', redfin: '', landwatch: '', realtor: '', loopnet: '', safe_area: '0' })
 
   useEffect(() => {
     fetchJSON('/api/saved_searches.php').then(d => setSaved(d.saved_searches || []))
@@ -64,6 +64,15 @@ export default function SettingsPage() {
       <Link to='/' style={{ fontSize: '.85rem' }}>← Back to listings</Link>
       <h2 style={{ margin: '1rem 0', color: '#58a6ff' }}>Settings</h2>
       {msg && <div style={{ padding: '.6rem', background: '#238636', borderRadius: 6, marginBottom: '1rem', fontWeight: 600 }}>{msg}</div>}
+
+      <section style={{ marginBottom: '2rem', background:'#161b22', padding:'.9rem', borderRadius:8, border:'1px solid #30363d' }}>
+        <h3>🏡 Home Search Preferences</h3>
+        <label style={{ display:'flex', alignItems:'center', gap:'.5rem', fontSize:'.9rem', cursor:'pointer' }}>
+          <input type='checkbox' checked={keys.safe_area === '1'} onChange={e => { const v = e.target.checked ? '1' : '0'; setKeys({ ...keys, safe_area: v }); fetchJSON('/api/settings.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key:'safe_area', value: v }) }).then(()=>setMsg('Safe area preference saved')).then(()=>setTimeout(()=>setMsg(''),2000)) }} />
+          <span>Only show listings in LGBTQ+/BIPOC-friendly safe areas</span>
+        </label>
+        <div style={{ fontSize:'.8rem', opacity:.65, marginTop:'.4rem' }}>When enabled, Browse and Map searches will be limited to approved counties in SW Washington, NW Oregon, and select western WA areas known for inclusivity.</div>
+      </section>
 
       <section style={{ marginBottom: '2rem' }}>
         <h3>Search Sources & API Keys</h3>

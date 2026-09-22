@@ -12,7 +12,21 @@ def migrate():
     c.execute("""
         CREATE TABLE IF NOT EXISTS favorites (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            listing_id  INTEGER NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+            listing_id  INTEGER REFERENCES listings(id) ON DELETE SET NULL,
+            address     TEXT,
+            city        TEXT,
+            state       TEXT,
+            price       INTEGER,
+            beds        REAL,
+            baths       REAL,
+            sqft        INTEGER,
+            lot_size_sqft INTEGER,
+            url         TEXT,
+            photo_url   TEXT,
+            status      TEXT,
+            source_id   TEXT,
+            source      TEXT,
+            snapshot    TEXT,           -- JSON backup of listing at time of favorite
             note        TEXT,
             created_at  TEXT DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(listing_id)

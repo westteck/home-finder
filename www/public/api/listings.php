@@ -14,6 +14,7 @@ $status    = param('status', 'Active');
 $city      = param('city', '');
 $state     = param('state', '');
 $q         = param('q', '');
+$listingType = param('listing_type', '');
 $latMin    = (float) param('lat_min', 0);
 $latMax    = (float) param('lat_max', 0);
 $lngMin    = (float) param('lng_min', 0);
@@ -21,6 +22,7 @@ $lngMax    = (float) param('lng_max', 0);
 $page      = max(1, (int) param('page', 1));
 $perPage   = (int) param('per_page', 50) ?: 50;
 $allDupes  = param('all', '');
+$safeArea  = param('safe_area', '0') === '1';
 
 $order = match ($sort) {
     'price_desc' => 'price DESC',
@@ -45,6 +47,7 @@ if ($status)        { $where[] = 'status LIKE ?';  $bindings[] = "%$status%"; }
 if ($city)          { $where[] = 'city = ?';       $bindings[] = $city; }
 if ($state)         { $where[] = 'state = ?';      $bindings[] = $state; }
 if ($q)             { $where[] = '(address LIKE ? OR city LIKE ? OR zip LIKE ?)'; $bindings[] = "%$q%"; $bindings[] = "%$q%"; $bindings[] = "%$q%"; }
+if ($listingType)   { $where[] = 'listing_type = ?'; $bindings[] = $listingType; }
 
 if ($latMin != 0 && $latMax != 0 && $lngMin != 0 && $lngMax != 0) {
     $where[] = 'latitude >= ? AND latitude <= ? AND longitude >= ? AND longitude <= ?';
@@ -52,6 +55,10 @@ if ($latMin != 0 && $latMax != 0 && $lngMin != 0 && $lngMax != 0) {
     $bindings[] = $latMax;
     $bindings[] = $lngMin;
     $bindings[] = $lngMax;
+}
+
+if ($safeArea) {
+    $where[] = "state IN ('WA','OR')";
 }
 
 $whereSQL = implode(' AND ', $where);

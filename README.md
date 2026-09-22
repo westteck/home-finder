@@ -111,3 +111,6 @@ ssh raggsy@10.10.10.111 "cd /tmp/home-finder-docker && docker compose build && d
 
 ---
 *Updated: 2026-08-09*
+
+---
+**PROJECT CLOSED 2026-09-11: current phase complete. Reopen when house-hunting resumes.**

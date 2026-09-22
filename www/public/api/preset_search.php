@@ -7,8 +7,20 @@ $type = $_GET['type'] ?? 'best_value';
 $page = max(1, intval($_GET['page'] ?? 1));
 $limit = min(100, intval($_GET['per_page'] ?? 24));
 $offset = ($page - 1) * $limit;
+$safeArea = $_GET['safe_area'] === '1';
 
-$where = ['is_canonical = 1', 'price > 0'];
+$minPrice = (int) param('min_price', 0);
+$maxPrice = (int) param('max_price', 999000000);
+$minBeds = (float) param('min_beds', 0);
+$minBaths = (float) param('min_baths', 0);
+$minLot = (float) param('min_lot', 0);
+$state = param('state', '');
+$city = param('city', '');
+$county = param('county', '');
+$q = param('q', '');
+
+$where = ['is_canonical = 1', 'price BETWEEN ? AND ?'];
+$bindings = [$minPrice, $maxPrice];
 $order = 'price ASC';
 $score_col = '';
 
@@ -67,15 +79,20 @@ switch ($type) {
 }
 
 $where_sql = implode(' AND ', $where);
+
+if ($safeArea) {
+    $where[] = "state IN ('WA','OR')";
+    $where_sql = implode(' AND ', $where);
+}
 $count_sql = "SELECT COUNT(*) FROM listings WHERE $where_sql";
-$total = intval(dbQueryOne($count_sql)['COUNT(*)']);
+$total = intval(dbQueryOne($count_sql, $bindings)['COUNT(*)']);
 $pages = max(1, ceil($total / $limit));
 
 $fields = "id, source, source_id, mls_id, status, price, beds, baths, sqft, lot_size_sqft, address, city, state, zip, county, url, photo_url, listed_date, latitude, longitude";
 if ($score_col) $fields .= ", $score_col";
 
 $select = "SELECT $fields FROM listings WHERE $where_sql ORDER BY $order LIMIT $limit OFFSET $offset";
-$rows = dbQueryAll($select);
+$rows = dbQueryAll($select, $bindings);
 
 echo json_encode([
     'type' => $type,

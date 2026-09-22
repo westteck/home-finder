@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { Routes, Route, Link, useSearchParams, useParams, useNavigate } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import SettingsPage from './Settings.jsx'
+import RentalsPage from './Rentals.jsx'
+import Filters from './Filters.jsx'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 
@@ -25,6 +27,7 @@ function Layout({ children }) {
         <nav>
           <Link to='/' style={{color:'#8b949e'}}>Browse</Link>
           <Link to='/map' style={{color:'#8b949e'}}>Map</Link>
+          <Link to='/rentals' style={{color:'#8b949e'}}>Rentals</Link>
           <Link to='/settings' style={{color:'#8b949e'}}>Settings</Link>
         </nav>
       </header>
@@ -62,98 +65,75 @@ function SaveSearchButton({ filters }) {
 function SavedSearches({ onApply }) {
   const [saved, setSaved] = useState([])
   const [open, setOpen] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [editName, setEditName] = useState('')
+  const [editFilters, setEditFilters] = useState({})
   useEffect(() => { fetchJSON('/api/saved_searches.php').then(d => setSaved(d.saved_searches || [])) }, [])
   if (saved.length === 0) return null
+
+  const startEdit = (s) => {
+    setEditingId(s.id)
+    setEditName(s.name)
+    setEditFilters(typeof s.filters === 'string' ? JSON.parse(s.filters || '{}') : (s.filters || {}))
+  }
+  const saveEdit = async () => {
+    if (!editName.trim()) return
+    const r = await fetch('/api/saved_searches.php', {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ id: editingId, name: editName.trim(), filters: editFilters })
+    })
+    const d = await r.json()
+    if (d.ok) {
+      setEditingId(null)
+      setSaved(list => list.map(s => s.id === editingId ? {...s, name: editName.trim(), filters: JSON.stringify(editFilters)} : s))
+    }
+  }
+  const deleteSearch = async (id) => {
+    await fetch(`/api/saved_searches.php?id=${id}`, { method: 'DELETE' }).then(r => r.json())
+    setSaved(list => list.filter(s => s.id !== id))
+  }
+  const applySearch = (s) => {
+    const f = typeof s.filters === 'string' ? JSON.parse(s.filters || '{}') : s.filters
+    onApply({...f, _savedSearchId: s.id, _savedSearchName: s.name})
+    setOpen(false)
+  }
+
   return (
     <div style={{marginBottom:'1rem'}}>
       <button onClick={() => setOpen(!open)} style={{background:'#161b22',color:'#8b949e',border:'1px solid #30363d',padding:'.5rem 1rem',borderRadius:6,cursor:'pointer',fontSize:'.9rem'}}>
         ▼ Saved Searches ({saved.length})
       </button>
       {open && (
-        <div style={{marginTop:'.5rem',background:'#161b22',border:'1px solid #30363d',borderRadius:8,padding:'.7rem',maxWidth:480}}>
+        <div style={{marginTop:'.5rem',background:'#161b22',border:'1px solid #30363d',borderRadius:8,padding:'.7rem',maxWidth:520}}>
           {saved.map(s => (
-            <div key={s.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'.5rem 0',borderBottom:'1px solid #21262d'}}>
-              <div>
-                <strong style={{color:'#e6edf3'}}>{s.name}</strong>
-                <div style={{fontSize:'.75rem',opacity:.6}}>{s.filters}</div>
-              </div>
-              <button onClick={() => { onApply(JSON.parse(s.filters || '{}')); setOpen(false); }} style={{background:'#238636',color:'#fff',border:'none',borderRadius:6,padding:'.3rem .7rem',cursor:'pointer',fontSize:'.75rem'}}>Apply</button>
+            <div key={s.id} style={{padding:'.5rem 0',borderBottom:'1px solid #21262d'}}>
+              {editingId === s.id ? (
+                <div style={{display:'flex',flexDirection:'column',gap:'.4rem'}}>
+                  <input value={editName} onChange={e=>setEditName(e.target.value)} placeholder='Search name' style={{background:'#0d1117',color:'#e6edf3',border:'1px solid #30363d',borderRadius:6,padding:'.4rem .7rem',fontSize:'.85rem'}} />
+                  <Filters defaults={editFilters} onSearch={setEditFilters} compact />
+                  <div style={{display:'flex',gap:'.4rem'}}>
+                    <button onClick={saveEdit} style={{background:'#238636',color:'#fff',border:'none',borderRadius:6,padding:'.3rem .7rem',cursor:'pointer',fontSize:'.75rem'}}>Save</button>
+                    <button onClick={() => setEditingId(null)} style={{background:'#30363d',color:'#e6edf3',border:'none',borderRadius:6,padding:'.3rem .7rem',cursor:'pointer',fontSize:'.75rem'}}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'.5rem',flexWrap:'wrap'}}>
+                  <div style={{flex:1,minWidth:140}}>
+                    <div style={{fontWeight:600,color:'#e6edf3',fontSize:'.85rem'}}>{s.name}</div>
+                    <div style={{fontSize:'.7rem',opacity:.55,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{typeof s.filters === 'string' ? s.filters : JSON.stringify(s.filters)}</div>
+                  </div>
+                  <div style={{display:'flex',gap:'.25rem'}}>
+                    <button onClick={() => applySearch(s)} style={{background:'#238636',color:'#fff',border:'none',borderRadius:6,padding:'.3rem .6rem',cursor:'pointer',fontSize:'.75rem'}}>Apply</button>
+                    <button onClick={() => startEdit(s)} style={{background:'#1f6feb',color:'#fff',border:'none',borderRadius:6,padding:'.3rem .6rem',cursor:'pointer',fontSize:'.75rem'}}>Edit</button>
+                    <button onClick={() => deleteSearch(s.id)} style={{background:'#f85149',color:'#fff',border:'none',borderRadius:6,padding:'.3rem .6rem',cursor:'pointer',fontSize:'.75rem'}}>Delete</button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
       )}
-    </div>
-  )
-}
-
-/* ── Filters component ── */
-function Filters({ defaults, onSearch }) {
-  const [state, setState] = useState(defaults)
-  const [opts, setOpts] = useState({ cities: [], states: [] })
-  useEffect(() => { fetchJSON('/api/filters.php').then(d => setOpts(d)) }, [])
-  useEffect(() => { setState(defaults) }, [defaults])
-
-  const submit = e => { e.preventDefault(); onSearch(state) }
-  const clear = () => {
-    const preserved = {}
-    // keep lat/lng bounds across clear
-    if (state.lat_min) preserved.lat_min = state.lat_min
-    if (state.lat_max) preserved.lat_max = state.lat_max
-    if (state.lng_min) preserved.lng_min = state.lng_min
-    if (state.lng_max) preserved.lng_max = state.lng_max
-    setState(preserved)
-    onSearch(preserved)
-  }
-  const hasBounds = state.lat_min && state.lat_max && state.lng_min && state.lng_max
-
-  return (
-    <div>
-      {hasBounds && (
-        <div style={{background:'#161b22',border:'1px solid #1f6feb',borderRadius:8,padding:'.7rem 1rem',marginBottom:'.8rem',display:'flex',alignItems:'center',gap:'.8rem'}}>
-          <span style={{fontSize:'.9rem'}}>📍 Map area bounded search active</span>
-          <button type='button' onClick={()=>{ const s={...state}; delete s.lat_min; delete s.lat_max; delete s.lng_min; delete s.lng_max; setState(s); onSearch(s); }}
-            style={{marginLeft:'auto',background:'transparent',color:'#f85149',border:'1px solid #f85149',padding:'.25rem .6rem',borderRadius:4,cursor:'pointer',fontSize:'.8rem'}}>Clear bounds</button>
-        </div>
-      )}
-      <form style={{display:'flex',flexWrap:'wrap',gap:'.6rem 1rem',marginBottom:'1.2rem',padding:'.9rem',background:'#161b22',border:'1px solid #30363d',borderRadius:'8px',alignItems:'flex-end'}} onSubmit={submit}>
-        <input type='hidden' value={state.lat_min||''} />
-        <input type='hidden' value={state.lat_max||''} />
-        <input type='hidden' value={state.lng_min||''} />
-        <input type='hidden' value={state.lng_max||''} />
-        <label>Min $<input type='number' value={state.min_price || ''} onChange={e=>setState({...state, min_price:e.target.value})} /></label>
-        <label>Max $<input type='number' value={state.max_price || ''} onChange={e=>setState({...state, max_price:e.target.value})} /></label>
-        <label>Beds ≥<input type='number' step='0.5' value={state.min_beds || ''} onChange={e=>setState({...state, min_beds:e.target.value})} /></label>
-        <label>Baths ≥<input type='number' step='0.5' value={state.min_baths || ''} onChange={e=>setState({...state, min_baths:e.target.value})} /></label>
-        <label>Lot(ac) ≥<input type='number' step='0.5' value={state.min_lot || ''} onChange={e=>setState({...state, min_lot:e.target.value})} /></label>
-        <label>State
-          <select value={state.state||''} onChange={e=>setState({...state, state:e.target.value})}>
-            <option value=''>Any</option>
-            {opts.states.map(s=> <option key={s} value={s}>{s}</option>)}
-          </select>
-        </label>
-        <label>City
-          <select value={state.city||''} onChange={e=>setState({...state, city:e.target.value})}>
-            <option value=''>Any</option>
-            {opts.cities.map(c=> <option key={c} value={c}>{c}</option>)}
-          </select>
-        </label>
-        <label>Search<input type='text' value={state.q||''} placeholder='address, zip...' onChange={e=>setState({...state, q:e.target.value})} /></label>
-        <label>Sort
-          <select value={state.sort||'price_asc'} onChange={e=>setState({...state, sort:e.target.value})}>
-            <option value='price_asc'>Price ▲</option>
-            <option value='price_desc'>Price ▼</option>
-            <option value='beds_desc'>Beds ▼</option>
-            <option value='lot_desc'>Lot ▼</option>
-            <option value='newest'>Newest</option>
-          </select>
-        </label>
-        <button type='submit' style={{background:'#238636',color:'#fff',fontWeight:600,padding:'.5rem 1.2rem',borderRadius:6,border:'1px solid #238636',cursor:'pointer'}}>Search</button>
-        <button type='button' onClick={clear} style={{background:'transparent',color:'#8b949e',border:'1px solid #30363d',padding:'.5rem .8rem',borderRadius:6,cursor:'pointer'}}>Clear</button>
-        <label style={{display:'flex',alignItems:'center',gap:'.4rem',fontSize:'.85rem',color:'#8b949e'}}>
-          <input type='checkbox' checked={!!state.all} onChange={e=>setState({...state, all: e.target.checked ? '1' : ''})} />
-          Show duplicates
-        </label>
-      </form>
     </div>
   )
 }
@@ -182,6 +162,16 @@ function Card({ row, favIds, onToggleFav }) {
       </div>
       {row.price_per_sqft && row.sqft > 0 && <div style={{fontSize:'.78rem',color:'#3fb950',marginTop:'.4rem'}}>${Math.round(+row.price_per_sqft).toLocaleString()}/sqft</div>}
       {row.price_per_acre && row.lot_size_sqft > 0 && <div style={{fontSize:'.78rem',color:'#3fb950',marginTop:'.4rem'}}>${Math.round(+row.price_per_acre * 43560).toLocaleString()}/acre</div>}
+      {(row.garage_spaces || row.stories || row.year_built) && (
+        <div style={{fontSize:'.75rem',color:'#8b949e',marginTop:'.35rem',display:'flex',gap:'.4rem',flexWrap:'wrap'}}>
+          {row.garage_spaces ? <span>🚗 {row.garage_spaces} garage</span> : null}
+          {row.stories ? <span>{+row.stories <= 1 ? '1-story' : (row.stories + '-story')}</span> : null}
+          {row.year_built ? <span>built {row.year_built}</span> : null}
+        </div>
+      )}
+      {row.homestead_score != null && (
+        <div style={{fontSize:'.78rem',color:'#58a6ff',marginTop:'.4rem'}}>🏡 Homestead score: <strong>{row.homestead_score}</strong>/100</div>
+      )}
       <div style={{marginTop:'.6rem'}}>
         <Link to={`/listing/${row.id}`} style={{fontSize:'.8rem'}}>View history & details →</Link>
       </div>
@@ -217,23 +207,78 @@ function Presets({ onSelect }) {
   )
 }
 
+/* ── Special searches — 2026 homestead hunt (scored, region-filtered) ── */
+const SPECIAL = [
+  { key:'homestead', label:'Homestead Hunt', emoji:'🏡', desc:'Best 1-5+ acre retirement properties across all 6 regions, scored by land value + house + $/acre' },
+  { key:'n_clark', label:'N. Clark WA', emoji:'🌲', desc:'Battle Ground, Ridgefield, Yacolt, Amboy, La Center + rural Clark County' },
+  { key:'cowlitz', label:'Cowlitz WA', emoji:'🌋', desc:'Woodland, Kalama, Castle Rock, Longview, Kelso, Toutle + rural Cowlitz' },
+  { key:'lewis', label:'Lewis WA', emoji:'🏔️', desc:'Centralia, Chehalis, Winlock, Toledo, Mossyrock + rural Lewis County' },
+  { key:'salem', label:'Salem OR', emoji:'🍇', desc:'Dallas, Monmouth, Independence, Turner, Aumsville, Silverton outskirts' },
+  { key:'albany', label:'Albany OR', emoji:'🌾', desc:'Albany, Lebanon, Philomath, Tangent, Brownsville, Scio + rural Linn-Benton' },
+]
+function SpecialSearches({ onSelect }) {
+  return (
+    <div style={{display:'flex',gap:'.5rem',flexWrap:'wrap',marginBottom:'1rem'}}>
+      {SPECIAL.map(p => (
+        <button
+          key={p.key}
+          onClick={() => onSelect({ special: p.key, page:'1' })}
+          style={{background:'#1f6feb22',color:'#58a6ff',border:'1px solid #1f6feb',borderRadius:6,padding:'.4rem .7rem',cursor:'pointer',fontSize:'.82rem',display:'flex',alignItems:'center',gap:'.3rem'}}
+          title={p.desc}
+        >
+          <span>{p.emoji}</span>
+          <span>{p.label}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 /* ── Browse route ── */
 function Browse() {
   const [sp, setSp] = useSearchParams()
   const [filters, setFilters] = useState(Object.fromEntries([...sp.entries()]))
   const [data, setData] = useState(null)
   const [stats, setStats] = useState(null)
+  const [scraping, setScraping] = useState(false)
+  const [scrapeMsg, setScrapeMsg] = useState('')
 
   const page = parseInt(filters.page || '1', 10)
   const isPreset = !!filters.preset
-  const baseQuery = isPreset
-    ? new URLSearchParams({ type: filters.preset, page: String(page), per_page: '24' }).toString()
-    : new URLSearchParams({ ...filters, page: String(page) }).toString()
-  const endpoint = isPreset ? `/api/preset_search.php?${baseQuery}` : `/api/listings.php?${baseQuery}`
+  const isSpecial = !!filters.special
+  const safeAreaFromSettings = typeof filters.safe_area !== 'undefined' ? filters.safe_area : '0'
+  const baseQuery = isSpecial
+    ? new URLSearchParams({ type: filters.special, page: String(page), per_page: '24' }).toString()
+    : isPreset
+    ? new URLSearchParams({ type: filters.preset, page: String(page), per_page: '24', safe_area: safeAreaFromSettings }).toString()
+    : new URLSearchParams({ ...filters, page: String(page), safe_area: safeAreaFromSettings }).toString()
+  const endpoint = isSpecial ? `/api/special_search.php?${baseQuery}` : isPreset ? `/api/preset_search.php?${baseQuery}` : `/api/listings.php?${baseQuery}`
+
+  const loadListings = () => {
+    setData(null)
+    fetchJSON(endpoint).then(d => setData(d))
+  }
 
   useEffect(() => { fetchJSON('/api/stats.php').then(d => setStats(d)) }, [])
-  useEffect(() => { setData(null); fetchJSON(endpoint).then(d => setData(d)) }, [endpoint])
+  useEffect(() => { loadListings() }, [endpoint])
   useEffect(() => { setSp(new URLSearchParams(filters), {replace:true}) }, [filters])
+
+  const doScrape = async () => {
+    if (!filters.city || !filters.state) { setScrapeMsg('Select a city and state first'); return }
+    setScraping(true)
+    setScrapeMsg('Scraping...')
+    try {
+      const r = await fetch(`/api/scrape_now.php?city=${encodeURIComponent(filters.city)}&state=${encodeURIComponent(filters.state)}`)
+      const d = await r.json()
+      if (d.ok) {
+        setScrapeMsg(`Done — ${d.new} new, ${d.updated} updated`)
+        loadListings()
+      } else {
+        setScrapeMsg('Failed: ' + (d.error || 'unknown'))
+      }
+    } catch (e) { setScrapeMsg('Failed') }
+    setScraping(false)
+  }
 
   // Favorites
   const [favIds, setFavIds] = useState(new Set())
@@ -265,11 +310,21 @@ function Browse() {
         <span style={{background:'#161b22',padding:'.4rem .8rem',borderRadius:6,border:'1px solid #30363d'}}>Min: <strong>${(+stats?.min_price || 0).toLocaleString()}</strong></span>
         <span style={{background:'#161b22',padding:'.4rem .8rem',borderRadius:6,border:'1px solid #30363d'}}>Max: <strong>${(+stats?.max_price || 0).toLocaleString()}</strong></span>
         {data && <span style={{background:'#161b22',padding:'.4rem .8rem',borderRadius:6,border:'1px solid #30363d'}}>Results: <strong>{data.total.toLocaleString()}</strong></span>}
+        {filters.preset && <span style={{background:'#1f6feb',padding:'.4rem .8rem',borderRadius:6,border:'1px solid #1f6feb',color:'#fff'}}>Preset: {filters.preset.replace(/_/g,' ')} <button onClick={()=>setFilters({...filters, preset:''})} style={{background:'transparent',color:'#fff',border:'none',cursor:'pointer',marginLeft:'.4rem'}}>✕</button></span>}
+        {filters.special && <span style={{background:'#1f6feb',padding:'.4rem .8rem',borderRadius:6,border:'1px solid #1f6feb',color:'#fff'}}>🔎 {SPECIAL.find(s=>s.key===filters.special)?.label || filters.special} <button onClick={()=>setFilters({...filters, special:''})} style={{background:'transparent',color:'#fff',border:'none',cursor:'pointer',marginLeft:'.4rem'}}>✕</button></span>}
+        {filters._savedSearchName && <span style={{background:'#238636',padding:'.4rem .8rem',borderRadius:6,border:'1px solid #238636',color:'#fff'}}>Saved: {filters._savedSearchName} <button onClick={()=>{const n={...filters}; delete n._savedSearchId; delete n._savedSearchName; setFilters(n)}} style={{background:'transparent',color:'#fff',border:'none',cursor:'pointer',marginLeft:'.4rem'}}>✕</button></span>}
       </div>
       <Filters defaults={filters} onSearch={setFilters} />
       <Presets onSelect={setFilters} />
+      <SpecialSearches onSelect={setFilters} />
       <SavedSearches onApply={setFilters} />
       <SaveSearchButton filters={filters} />
+      <div style={{display:'flex',gap:'.5rem',alignItems:'center',marginBottom:'1rem'}}>
+        <button onClick={doScrape} disabled={scraping} style={{background:'#1f6feb',color:'#fff',border:'none',borderRadius:6,padding:'.4rem .8rem',cursor:'pointer',fontSize:'.85rem',opacity:scraping?.5:1}}>
+          {scraping ? '⏳ Scraping...' : '🔍 Scrape now'}
+        </button>
+        {scrapeMsg && <span style={{fontSize:'.85rem',color:'#8b949e'}}>{scrapeMsg}</span>}
+      </div>
       <button onClick={exportCSV} style={{marginBottom:'1rem'}}>Export CSV</button>
       {data?.type && <span style={{fontSize:'.85rem',color:'#1f6feb',marginBottom:'1rem',display:'block'}}>🔎 Smart search: {data.type.replace(/_/g,' ')}</span>}
       {!data ? <p style={{opacity:.5}}>Loading...</p> : (
@@ -473,6 +528,38 @@ function ListingDetail() {
   )
 }
 
+/* ── Rentals page ── */
+function Rentals() {
+  const [sp, setSp] = useSearchParams()
+  const [filters, setFilters] = useState(Object.fromEntries([...sp.entries()]))
+  const [data, setData] = useState(null)
+  const page = parseInt(filters.page || '1', 10)
+  const baseQuery = new URLSearchParams({ ...filters, page: String(page), per_page: '24', listing_type: 'rental' }).toString()
+  const endpoint = `/api/listings.php?${baseQuery}`
+  useEffect(() => { fetchJSON(endpoint).then(d => setData(d)) }, [endpoint])
+  useEffect(() => { setSp(new URLSearchParams(filters), {replace:true}) }, [filters])
+  return (
+    <div className='wrap'>
+      <h2 style={{ margin: '1rem 0', color: '#58a6ff' }}>Home Rentals</h2>
+      <Filters defaults={filters} onSearch={setFilters} />
+      {!data ? <p style={{opacity:.5}}>Loading rentals...</p> : (
+        <>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'1rem'}}>
+            {data.listings.map(row => <Card key={row.id} row={row} favIds={new Set()} onToggleFav={()=>{}} />)}
+          </div>
+          {data.pages > 1 && (
+            <div style={{marginTop:'1.5rem',display:'flex',gap:'.4rem',flexWrap:'wrap'}}>
+              {Array.from({length:data.pages}, (_,i)=>i+1).map(p => (
+                <button key={p} style={{minWidth:30,padding:'.3rem .6rem'}} onClick={()=>setFilters({...filters, page:String(p)})}>{p}</button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 /* ── App ── */
 export default function App() {
   return (
@@ -481,6 +568,7 @@ export default function App() {
         <Route path='/' element={<Browse/>} />
         <Route path='/map' element={<MapPage/>} />
         <Route path='/listing/:id' element={<ListingDetail/>} />
+        <Route path='/rentals' element={<Rentals/>} />
         <Route path='/settings' element={<SettingsPage/>} />
       </Routes>
     </Layout>

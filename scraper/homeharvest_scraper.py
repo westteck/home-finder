@@ -8,20 +8,20 @@ try:
 except ImportError:
     scrape_property = None
 
-# Map our region targets to HomeHarvest locations
+# Target towns for the 2026 homestead hunt: Clark/Cowlitz/Lewis WA + Salem Polk-Marion + Albany Linn-Benton OR
+# Full list with regions in target_towns.py
 LOCATIONS = [
-    "The Dalles, OR",
-    "Portland, OR",
-    "Bend, OR",
-    "Hood River, OR",
-    "Eugene, OR",
-    "Medford, OR",
-    "Seattle, WA",
-    "Bellevue, WA",
-    "Spokane, WA",
-    "Vancouver, WA",
-    "Yakima, WA",
-    "Tacoma, WA",
+    "Battle Ground, WA", "Brush Prairie, WA", "Hockinson, WA", "Ridgefield, WA",
+    "La Center, WA", "Yacolt, WA", "Amboy, WA", "Vancouver, WA",
+    "Woodland, WA", "Kalama, WA", "Castle Rock, WA", "Longview, WA", "Kelso, WA",
+    "Toutle, WA", "Vader, WA", "Ryderwood, WA",
+    "Centralia, WA", "Chehalis, WA", "Napavine, WA", "Winlock, WA", "Toledo, WA",
+    "Mossyrock, WA", "Onalaska, WA",
+    "Salem, OR", "Dallas, OR", "Monmouth, OR", "Independence, OR", "Turner, OR",
+    "Aumsville, OR", "Silverton, OR", "Stayton, OR", "Sublimity, OR", "Jefferson, OR",
+    "Albany, OR", "Lebanon, OR", "Philomath, OR", "Adair Village, OR", "Tangent, OR",
+    "Brownsville, OR", "Halsey, OR", "Harrisburg, OR", "Monroe, OR", "Scio, OR",
+    "Sodaville, OR", "Crawfordsville, OR", "Corvallis, OR",
 ]
 
 def parse_row(row) -> dict | None:
@@ -59,7 +59,12 @@ def parse_row(row) -> dict | None:
         "listed_date": str(row.get("list_date") or ""),
         "latitude": row.get("latitude"),
         "longitude": row.get("longitude"),
-        "raw_json": json.dumps({k: str(v) for k, v in row.items()}),
+        "raw_json": json.dumps({
+            k: (None if v is None or (isinstance(v, float) and v != v) else v)
+            for k, v in row.items()
+            if k in ("garage_spaces", "parking_spaces", "story_number", "stories", "year_built",
+                     "lot_sqft", "price_per_sqft", "primary_photo", "alt_photos", "text", "description")
+        }),
     }
 
 def run_region(db, location: str, limit: int = 100) -> tuple[int, int, int]:
