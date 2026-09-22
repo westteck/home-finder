@@ -215,6 +215,7 @@ const SPECIAL = [
   { key:'lewis', label:'Lewis WA', emoji:'🏔️', desc:'Centralia, Chehalis, Winlock, Toledo, Mossyrock + rural Lewis County' },
   { key:'salem', label:'Salem OR', emoji:'🍇', desc:'Dallas, Monmouth, Independence, Turner, Aumsville, Silverton outskirts' },
   { key:'albany', label:'Albany OR', emoji:'🌾', desc:'Albany, Lebanon, Philomath, Tangent, Brownsville, Scio + rural Linn-Benton' },
+  { key:'sleeper', label:'Sleeper Towns', emoji:'🌙', desc:'Halsey, Harrisburg, Brownsville, Cottage Grove, Vernonia + WA sleepers' },
 ]
 function SpecialSearches({ onSelect }) {
   return (

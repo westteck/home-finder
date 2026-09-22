@@ -21,18 +21,20 @@ $REGIONS = array(
     'lewis'   => array('Centralia','Chehalis','Napavine','Winlock','Toledo','Mossyrock','Onalaska','Vader','Doty','Curtis'),
     'salem'   => array('Salem','Dallas','Monmouth','Independence','Turner','Aumsville','Silverton','Stayton','Sublimity','Jefferson'),
     'albany'  => array('Albany','Lebanon','Philomath','Adair Village','Tangent','Brownsville','Halsey','Harrisburg','Monroe','Scio','Sodaville','Crawfordsville','Corvallis'),
+    'sleeper' => array('Halsey','Harrisburg','Brownsville','Cottage Grove','Vernonia','Ryderwood','Toutle','Mossyrock','Tangent','Millersburg'),
     'all'     => array(),
 );
 /* ZIP matching removed: guessed rural zips cross-contaminated regions (La Center in cowlitz etc.).
    City + county matching is sufficient - Redfin/HomeHarvest always set county. */
 $REG_ZIPS = array(
     'n_clark' => array(), 'cowlitz' => array(), 'lewis' => array(),
-    'salem' => array(), 'albany' => array(),
+    'salem' => array(), 'albany' => array(), 'sleeper' => array(),
     'all' => array(), 'homestead' => array(),
 );
 $REG_COUNTY = array(
     'n_clark' => 'CLARK', 'cowlitz' => 'COWLITZ', 'lewis' => 'LEWIS',
     'salem' => 'MARION|POLK', 'albany' => 'LINN|BENTON',
+    'sleeper' => 'LINN|LANE|COLUMBIA|COWLITZ|LEWIS',
     'all' => '', 'homestead' => '',
 );
 $REGIONS['homestead'] = array();   /* default: target-region homestead hunt, scored */

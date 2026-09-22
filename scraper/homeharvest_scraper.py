@@ -22,6 +22,8 @@ LOCATIONS = [
     "Albany, OR", "Lebanon, OR", "Philomath, OR", "Adair Village, OR", "Tangent, OR",
     "Brownsville, OR", "Halsey, OR", "Harrisburg, OR", "Monroe, OR", "Scio, OR",
     "Sodaville, OR", "Crawfordsville, OR", "Corvallis, OR",
+    # Sleeper-search towns
+    "Cottage Grove, OR", "Vernonia, OR", "Millersburg, OR",
 ]
 
 def parse_row(row) -> dict | None:
